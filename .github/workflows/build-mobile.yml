@@ -36,10 +36,13 @@ jobs:
         run: |
           flutter create --no-pub --platforms android --org com.showroomxr --project-name london_showroom .
           sed -i '/<manifest /a\    <uses-permission android:name="android.permission.INTERNET" />' android/app/src/main/AndroidManifest.xml
+          flutter pub get
+      - name: Generate and verify London model
+        run: |
           python3 ar-preview/generate-model.py
           mkdir -p assets
-          cp ar-preview/london-10_14_3.glb assets/
-          flutter pub get
+          cp ar-preview/london-10_14_3.glb assets/london-10_14_3.glb
+          test -s assets/london-10_14_3.glb
       - run: flutter analyze lib
       - run: flutter build apk --debug --dart-define="SHOWROOM_AR_URL=$SHOWROOM_AR_URL"
       - uses: actions/upload-artifact@v4
@@ -58,10 +61,13 @@ jobs:
           flutter-version: '3.47.8'
       - run: |
           flutter create --no-pub --platforms ios --org com.showroomxr --project-name london_showroom .
+          flutter pub get
+      - name: Generate and verify London model
+        run: |
           python3 ar-preview/generate-model.py
           mkdir -p assets
-          cp ar-preview/london-10_14_3.glb assets/
-          flutter pub get
+          cp ar-preview/london-10_14_3.glb assets/london-10_14_3.glb
+          test -s assets/london-10_14_3.glb
       - run: flutter analyze lib
       - name: Build and package unsigned IPA
         run: |
