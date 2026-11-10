@@ -3,7 +3,10 @@ name: Build Almutlaq mobile apps
 on:
   push:
     branches: [main]
-    paths: ['.github/workflows/build-mobile.yml']
+    paths:
+      - '.github/workflows/build-mobile.yml'
+      - 'lib/**'
+      - 'pubspec.yaml'
   workflow_dispatch:
     inputs:
       ar_url:
