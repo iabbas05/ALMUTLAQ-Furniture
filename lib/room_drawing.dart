@@ -81,13 +81,10 @@ class RoomDrawing extends CustomPainter {
     this.selected,
     this.width,
     this.length,
-    this.height,
-    this.perspective,
   );
   final List<RoomPiece> pieces;
   final List<Opening> openings;
-  final int selected, width, length, height;
-  final bool perspective;
+  final int selected, width, length;
 
   static const ink = Color(0xff554c42);
   static const upholstery = Color(0xffe7d8c0);
@@ -96,10 +93,6 @@ class RoomDrawing extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (perspective) {
-      _paintThreeQuarter(canvas, size);
-      return;
-    }
     final scale = size.width / width;
     canvas.scale(scale);
     final room = Rect.fromLTWH(0, 0, width.toDouble(), length.toDouble());
@@ -225,135 +218,6 @@ class RoomDrawing extends CustomPainter {
           stroke,
         );
       }
-    }
-  }
-
-  void _paintThreeQuarter(Canvas canvas, Size size) {
-    final w = width.toDouble(), l = length.toDouble(), h = height.toDouble();
-    final scale = math.min(
-      (size.width - 24) / ((w + l) * .78),
-      (size.height - 24) / ((w + l) * .34 + h * .78),
-    );
-    final origin = Offset(
-      size.width / 2 + (l - w) * .39 * scale,
-      12 + h * .78 * scale,
-    );
-    Offset project(double x, double y, double z) =>
-        origin + Offset((x - y) * .78, (x + y) * .34 - z * .78) * scale;
-    void surface(List<Offset> points, Color color) => canvas.drawPath(
-      Path()..addPolygon(points, true),
-      Paint()..color = color,
-    );
-    surface([
-      project(0, 0, 0),
-      project(w, 0, 0),
-      project(w, l, 0),
-      project(0, l, 0),
-    ], const Color(0xffd8bd98));
-    void wall(Wall side, double span) {
-      Offset at(double x, double z) =>
-          side == Wall.top ? project(x, 0, z) : project(0, x, z);
-      void panel(double a, double b, double bottom, double top, Color color) {
-        if (b <= a || top <= bottom) return;
-        surface([at(a, bottom), at(b, bottom), at(b, top), at(a, top)], color);
-      }
-
-      final color = side == Wall.top
-          ? const Color(0xfff3ece1)
-          : const Color(0xffe6d9c7);
-      final cuts = openings.where((o) => o.wall == side).toList()
-        ..sort((a, b) => a.offset.compareTo(b.offset));
-      var start = 0.0;
-      for (final o in cuts) {
-        final a = o.offset.toDouble(), b = (o.offset + o.width).toDouble();
-        panel(start, a, 0, h, color);
-        panel(a, b, 0, o.sill.toDouble(), color);
-        panel(a, b, (o.sill + o.height).toDouble(), h, color);
-        if (o.window)
-          panel(
-            a,
-            b,
-            o.sill.toDouble(),
-            (o.sill + o.height).toDouble(),
-            const Color(0xff9ac6d4),
-          );
-        start = b;
-      }
-      panel(start, span, 0, h, color);
-    }
-
-    wall(Wall.left, l);
-    wall(Wall.top, w);
-    final ordered = pieces.toList()
-      ..sort((a, b) => (a.x + a.y).compareTo(b.x + b.y));
-    for (final piece in ordered) {
-      final theta = piece.angle * math.pi / 180;
-      final c = math.cos(theta), s = math.sin(theta);
-      Offset at(double x, double y, double z) =>
-          project(piece.x + x * c - y * s, piece.y + x * s + y * c, z);
-      final pw = piece.product.width.toDouble(),
-          pd = piece.product.depth.toDouble(),
-          ph = piece.product.height.toDouble();
-      void box(
-        double x,
-        double y,
-        double bw,
-        double bd,
-        double bottom,
-        double top,
-        Color color,
-      ) {
-        final a = at(x, y, top),
-            b = at(x + bw, y, top),
-            c = at(x + bw, y + bd, top),
-            d = at(x, y + bd, top);
-        surface([
-          b,
-          c,
-          at(x + bw, y + bd, bottom),
-          at(x + bw, y, bottom),
-        ], Color.lerp(color, Colors.black, .19)!);
-        surface([
-          c,
-          d,
-          at(x, y + bd, bottom),
-          at(x + bw, y + bd, bottom),
-        ], Color.lerp(color, Colors.black, .29)!);
-        surface([a, b, c, d], color);
-      }
-
-      box(-pw / 2, -pd / 2, pw, pd, 0, ph * .42, upholstery);
-      box(-pw / 2, -pd / 2, pw, pd * .22, ph * .42, ph, upholstery);
-      final seats = piece.product.sku == '6_14_5' ? 1 : 3;
-      for (var i = 0; i < seats; i++) {
-        box(
-          -pw * .34 + i * pw * .68 / seats,
-          -pd * .26,
-          pw * .65 / seats,
-          pd * .70,
-          ph * .42,
-          ph * .53,
-          cushion,
-        );
-      }
-      box(
-        -pw / 2,
-        -pd * .36,
-        pw * .15,
-        pd * .86,
-        ph * .42,
-        ph * .72,
-        upholstery,
-      );
-      box(
-        pw * .35,
-        -pd * .36,
-        pw * .15,
-        pd * .86,
-        ph * .42,
-        ph * .72,
-        upholstery,
-      );
     }
   }
 
