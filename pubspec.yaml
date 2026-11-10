@@ -1,0 +1,13 @@
+name: london_showroom
+description: Live furniture storefronts for The Factory and CityW.
+publish_to: none
+version: 0.2.0+2
+environment:
+  sdk: ^3.8.0
+dependencies:
+  flutter:
+    sdk: flutter
+  url_launcher: ^6.3.1
+  webview_flutter: 4.14.1
+flutter:
+  uses-material-design: true
