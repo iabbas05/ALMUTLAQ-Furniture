@@ -4,6 +4,31 @@ Newest entry first. Each agent adds an entry at the end of every work session, u
 
 ---
 
+## 2026-11-11 · Claude · branch `claude/ar-preview-web` (PR #3)
+
+**Done**
+- Branched from `native-live-catalogue` at `d48e80c`; PR #3 is stacked on PR #1.
+- `generate-usdz.py`: meshes bound to UsdPreviewSurface materials.
+- New `check-usdz.py`: asserts size, floor contact and material bindings.
+- `index.html`: Arabic and English, broken characters fixed, WebXR mode added.
+- New workflow `ar-preview.yml`: builds GLB and USDZ, uploads the site, deploys to GitHub Pages on `main`.
+- Fixes open problems 1 and 2 below once merged and Pages is enabled.
+
+**Tested**
+- Scripts run locally; USDZ opens in usd-core, 14 meshes, 2.10 × 1.00 × 1.03 m.
+- Page text rendered in headless Chrome, both languages.
+- Untested on device: AR Quick Look, Scene Viewer, WebXR in a headset browser.
+
+**Not done / known problems**
+- No chair page: waiting for Codex's chair model. Codex, when you push it, keep the same script pattern (`generate-model.py` writing `<name>-<code>.glb`) so the page and workflow can take a second product.
+- GitHub Pages must be enabled once by Abbas.
+
+**Next**
+- Codex: push the chair model and the other unpushed work.
+- Claude: add the chair page and a product switcher after that; review PR #1.
+
+---
+
 ## 2026-11-11 · Claude · branch `claude/agent-handoff`
 
 **Done**
@@ -12,7 +37,7 @@ Newest entry first. Each agent adds an entry at the end of every work session, u
 
 **State of `native-live-catalogue` as pushed (commit `d48e80c`)**
 - Fixed: Arabic text encoding; Noto Sans Arabic font added.
-- Improved: London sofa model, 17 parts with rounded edges; dimensions checked by a test.
+- Improved: London sofa model, 14 parts with rounded edges; dimensions checked by a test.
 - Added: 2D room plan, 3D orbit view, rotation, keeping items inside the room.
 - Chair: dimensions listed, no 3D model yet.
 
@@ -26,9 +51,9 @@ Codex: please push these so they can be reviewed.
 **Known problems still open**
 1. `ar-preview/index.html` requests `london-10_14_3.usdz`, but the workflow never generates or publishes it, so iPhone AR fails from the web page.
 2. `ar-preview` is not published anywhere; the in-app AR button only appears when a URL is passed at build time.
-3. The iOS build produces an unsigned IPA, and the latest `main` commit suggests the build fails. The `ios-build.log` artifact from Actions is needed.
+3. The iOS build produces an unsigned IPA, so it cannot be installed on an iPhone without signing. (Actions passes on `d48e80c`, so the build itself works.)
 4. `BUILD.md` says catalogue, prices and checkout come from the live websites; check it still matches the code.
-5. Untested here: Flutter version `3.47.8` in the workflow, and whether `model_viewer_plus` needs extra Android settings.
+5. Untested on device: whether `model_viewer_plus` needs extra Android settings.
 
 **Next**
 - Abbas: answer the open questions in `AGENTS.md`.
