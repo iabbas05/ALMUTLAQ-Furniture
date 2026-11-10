@@ -2,9 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:london_showroom/room_drawing.dart';
 import 'package:london_showroom/room_planner.dart';
+import 'package:london_showroom/room_orbit.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('London mesh retains its published dimensions in the room', () async {
+    final mesh = await LondonMesh.load();
+    final points = mesh.expand((face) => face.points).toList();
+    expect(points, isNotEmpty);
+    double extent(List<double> axis) {
+      axis.sort();
+      return axis.last - axis.first;
+    }
+
+    expect(extent(points.map((p) => p.x).toList()), closeTo(210, .01));
+    expect(extent(points.map((p) => p.y).toList()), closeTo(103, .01));
+    expect(extent(points.map((p) => p.z).toList()), closeTo(100, .01));
+  });
   test('Openings respect wall length and available height', () {
     const door = Opening(Wall.top, 50, 90, false, 0, 210, false);
     const window = Opening(Wall.right, 350, 100, true, 100, 110, true);
@@ -35,8 +51,7 @@ void main() {
     );
     await tester.tap(find.text('3D view'));
     await tester.pump();
-    final updated = tester.widget<CustomPaint>(drawing).painter! as RoomDrawing;
-    expect(updated.perspective, isTrue);
+    final updated = tester.widget<RoomOrbit>(find.byType(RoomOrbit));
     expect(updated.width, 420);
     expect(updated.length, 500);
   });
