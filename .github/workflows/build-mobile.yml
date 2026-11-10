@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/build-mobile.yml'
       - 'lib/**'
+      - 'test/**'
       - 'pubspec.yaml'
       - 'ar-preview/**'
   pull_request:
@@ -13,6 +14,7 @@ on:
     paths:
       - '.github/workflows/build-mobile.yml'
       - 'lib/**'
+      - 'test/**'
       - 'pubspec.yaml'
       - 'ar-preview/**'
   workflow_dispatch:
@@ -50,7 +52,12 @@ jobs:
           mkdir -p assets
           cp ar-preview/london-10_14_3.glb assets/london-10_14_3.glb
           test -s assets/london-10_14_3.glb
+          font_base='https://raw.githubusercontent.com/google/fonts/main/ofl/notosansarabic'
+          curl --fail --silent --show-error --location --retry 3 "$font_base/NotoSansArabic%5Bwdth%2Cwght%5D.ttf" --output assets/NotoSansArabic.ttf
+          curl --fail --silent --show-error --location --retry 3 "$font_base/OFL.txt" --output assets/NotoSansArabic-OFL.txt
+          test -s assets/NotoSansArabic.ttf
       - run: flutter analyze lib
+      - run: flutter test test/room_planner_test.dart
       - run: flutter build apk --debug --dart-define="SHOWROOM_AR_URL=$SHOWROOM_AR_URL"
       - uses: actions/upload-artifact@v4
         with:
@@ -75,7 +82,12 @@ jobs:
           mkdir -p assets
           cp ar-preview/london-10_14_3.glb assets/london-10_14_3.glb
           test -s assets/london-10_14_3.glb
+          font_base='https://raw.githubusercontent.com/google/fonts/main/ofl/notosansarabic'
+          curl --fail --silent --show-error --location --retry 3 "$font_base/NotoSansArabic%5Bwdth%2Cwght%5D.ttf" --output assets/NotoSansArabic.ttf
+          curl --fail --silent --show-error --location --retry 3 "$font_base/OFL.txt" --output assets/NotoSansArabic-OFL.txt
+          test -s assets/NotoSansArabic.ttf
       - run: flutter analyze lib
+      - run: flutter test test/room_planner_test.dart
       - name: Build and package unsigned IPA
         run: |
           set -o pipefail
