@@ -356,7 +356,10 @@ class RoomPlannerState extends State<RoomPlanner> {
   }
 
   String? saved;
-  var pieces = [RoomPiece(furnitureSizes.first, 200, 125, 0)];
+  var pieces = [
+    RoomPiece(furnitureSizes.first, 200, 125, 0),
+    RoomPiece(furnitureSizes[1], 285, 300, 0),
+  ];
 
   String tr(String ar, String en) => widget.arabic ? ar : en;
   String name(FurnitureSize product) => widget.arabic ? product.ar : product.en;

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>المطلق، لوحة تجربة الغرفة</title><link rel="stylesheet" href="/staff.css"><script defer src="/staff.js"></script></head>
+<body>
+<header><div><p class="eyebrow">The Factory · CityW</p><h1>تجربة الغرفة</h1></div>
+<div class="status" role="status"><span id="connection">جاري الاتصال</span><small id="revision"></small></div></header>
+<nav aria-label="أقسام لوحة الموظف">
+<button type="button" data-tab="room" aria-current="page">غرفة العميل</button>
+<button type="button" data-tab="customers">التجارب المحفوظة</button>
+<button type="button" data-tab="catalogue">المنتجات والمجسمات</button>
+</nav>
+<p id="message" role="status" aria-live="polite"></p>
+<main>
+<section id="room" class="tab">
+<div class="workspace">
+<div class="scene"><div class="section-heading"><h2>رتّب الأثاث بمقاسه</h2><span class="muted">اسحب القطعة لتغيّر مكانها</span></div>
+<canvas id="plan" width="900" height="900" tabindex="0" aria-label="مخطط الغرفة، استخدم الحقول لتعديل موضع القطعة"></canvas>
+<p class="caption">العرض من اليسار لليمين، والعمق من أعلى المخطط لأسفله. كل القياسات بالمتر.</p>
+<div class="toolbar"><select id="pieces" aria-label="القطعة المختارة"></select>
+<button type="button" id="rotate">تدوير ١٥°</button><button type="button" id="remove" class="subtle">حذف القطعة</button></div>
+<div id="gaps" class="muted"></div>
+</div>
+<aside>
+<form id="measurements" class="panel"><p class="eyebrow">١. قياسات الغرفة</p>
+<div class="fields three"><label>العرض<input id="width" type="number" min="1" max="25" step=".01" required inputmode="decimal"></label>
+<label>العمق<input id="depth" type="number" min="1" max="25" step=".01" required inputmode="decimal"></label>
+<label>الارتفاع<input id="height" type="number" min="2" max="10" step=".01" required inputmode="decimal"></label></div>
+<button class="primary" type="submit">إرسال للنظارة</button></form>
+<div class="panel"><p class="eyebrow">٢. أثاث التجربة</p><div id="products" class="product-list"></div>
+<p class="muted small">مجسمات London معاد بناؤها بمقاسات الموقع. الشكل والقماش يحتاجان اعتماد المصنع.</p></div>
+<details class="panel"><summary>إضافة باب أو دريشة</summary>
+<form id="opening-form"><div class="fields"><label>النوع<select id="opening-kind"><option value="door">باب</option><option value="window">دريشة</option></select></label>
+<label>الجدار<select id="opening-wall"><option value="top">العلوي</option><option value="right">اليمين</option><option value="bottom">السفلي</option><option value="left">اليسار</option></select></label>
+<label>المسافة من بداية الجدار<input id="opening-offset" type="number" min="0" step=".01" value=".5" required></label>
+<label>عرض الفتحة<input id="opening-width" type="number" min=".1" step=".01" value=".9" required></label>
+<label>ارتفاع الفتحة<input id="opening-height" type="number" min=".1" step=".01" value="2.1" required></label>
+<label>ارتفاع العتبة<input id="opening-sill" type="number" min="0" step=".01" value="0" required></label></div>
+<label class="check"><input id="opening-reverse" type="checkbox">عكس جهة الفتح</label><button type="submit">إضافة الفتحة</button></form>
+<div id="openings"></div></details>
+<details class="panel"><summary>ربط جهاز</summary><p>استخدم هالرمز مرة واحدة في التطبيق. ينتهي عقب دقيقتين.</p>
+<button type="button" id="pair">إظهار رمز جديد</button><output id="pair-code" class="pair-code" aria-live="polite"></output>
+<button type="button" id="revoke" class="subtle">إلغاء ربط الأجهزة</button></details>
+<details class="panel"><summary>استيراد تصميم من الجوال</summary><label>ملف الغرفة<textarea id="room-json" rows="5" dir="ltr" placeholder="ألصق ملف الغرفة المنسوخ من التطبيق"></textarea></label>
+<button type="button" id="import">فتح التصميم وإرساله</button></details>
+<button type="button" id="new-session" class="subtle wide">تجربة جديدة</button>
+</aside></div>
+<form id="save-customer" class="panel customer-save"><div><p class="eyebrow">احتفظ بالتجربة للزيارة الياية</p><h2>احفظ تصميم العميل</h2></div>
+<div class="fields"><label>اسم العميل<input id="customer-name" autocomplete="name" minlength="2" maxlength="120" required></label>
+<label>رقم التلفون<input id="customer-phone" dir="ltr" type="tel" autocomplete="tel" pattern="\+?[0-9 ()-]{8,24}" required></label></div>
+<label class="check"><input id="customer-consent" type="checkbox" required>العميل موافق نحفظ اسمه ورقمه وتصميمه للرجوع له</label>
+<button type="submit" class="primary">حفظ التجربة</button><p class="muted small">الحفظ على كمبيوتر المعرض. الاسم والرقم ما ينرسلون للنظارة.</p></form>
+</section>
+<section id="customers" class="tab" hidden><div class="section-heading"><h2>التجارب المحفوظة</h2>
+<label>ابحث بالاسم أو الرقم<input id="customer-search" type="search"></label></div><div id="customer-list"></div></section>
+<section id="catalogue" class="tab" hidden><p class="eyebrow">كتالوج التجربة المحلي</p><h2>إدارة المنتجات والمجسمات</h2>
+<p class="muted">هذي إدارة كتالوج التجربة. ربط تعديل المنتجات بالموقع والمخزون يحتاج واجهات الشركة.</p>
+<div class="catalogue-grid"><form id="category-form" class="panel"><h3>تصنيف</h3><label>رمز التصنيف<input id="category-id" pattern="[a-z0-9_-]{1,40}" required dir="ltr"></label>
+<label>اسم التصنيف<input id="category-name" maxlength="100" required></label><button type="submit">حفظ التصنيف</button></form>
+<form id="product-form" class="panel"><h3>بيانات المنتج</h3><label>رمز المنتج مع العلامة<input id="product-id" placeholder="factory:TEST_1" dir="ltr" required></label>
+<div class="fields"><label>الاسم العربي<input id="product-arabic" required maxlength="150"></label><label>الاسم الإنجليزي<input id="product-name" required maxlength="150"></label></div>
+<label>التصنيف<select id="product-category"></select></label>
+<div class="fields three"><label>العرض بالمتر<input id="product-width" type="number" min=".05" max="10" step=".001" required></label>
+<label>العمق بالمتر<input id="product-depth" type="number" min=".05" max="10" step=".001" required></label>
+<label>الارتفاع بالمتر<input id="product-height" type="number" min=".05" max="10" step=".001" required></label></div>
+<button type="submit">حفظ بيانات المنتج</button></form></div>
+<div class="panel"><div class="section-heading"><h3>رفع ومعاينة ونشر</h3><select id="model-product" aria-label="منتج المجسم"></select></div>
+<p class="muted small">نسخة التجربة تقبل GLB ثابتًا بخامات ملونة، بحد ١٥ ميغابايت. نرفض فرق المقاس الأكبر من ٥ مم، ولا نمدد المجسم ليدخل. الخامات المصورة تحتاج مسار الاستيراد الكامل في Unity.</p>
+<label>ملف المجسم<input id="model-file" type="file" accept=".glb,model/gltf-binary"></label>
+<div class="toolbar"><button type="button" id="upload-model">رفع كمسودة</button><button type="button" id="preview-model">معاينة المجسم</button>
+<label class="check"><input id="visual-approval" type="checkbox">راجعت الشكل والمقاس وأوافق على النشر</label><button type="button" id="publish-model" class="primary">نشر النسخة</button></div>
+<p id="model-status" class="muted"></p></div>
+<div id="catalogue-list"></div>
+</section>
+</main>
+<dialog id="model-dialog"><div class="section-heading"><h2>معاينة المجسم</h2><button id="close-preview" type="button">إغلاق</button></div>
+<canvas id="model-canvas" width="900" height="600" aria-label="معاينة مجسم الأثاث"></canvas><p class="muted">المعاينة تعرض نفس مثلثات نسخة التجربة، ويحتاج القماش اعتمادًا منفصلًا.</p></dialog>
+<footer>Almutlaq Furniture · تجربة تطوير محلية · <span id="service-version">0.8</span></footer>
+</body></html>

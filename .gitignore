@@ -2,8 +2,8 @@ build/
 .dart_tool/
 .flutter-plugins*
 pubspec.lock
-android/
-ios/
+/android/
+/ios/
 generated-models/
 assets/*.glb
 assets/*.ttf
@@ -22,3 +22,9 @@ unity/**/Library/
 unity/**/Temp/
 unity/**/Logs/
 unity/**/obj/
+
+server/_browser-test-data/
+qa/node_modules/
+qa/test-results/
+qa/playwright-report/
+photo-fetch-status.json

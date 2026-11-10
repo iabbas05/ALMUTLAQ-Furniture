@@ -23,6 +23,4 @@ flutter:
       fonts:
         - asset: assets/NotoSansArabic.ttf
   assets:
-    - assets/london-10_14_3.glb
-    - assets/london-6_14_5.glb
-    - assets/NotoSansArabic-OFL.txt
+    - assets/

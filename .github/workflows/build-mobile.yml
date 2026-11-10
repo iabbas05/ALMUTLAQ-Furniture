@@ -70,6 +70,7 @@ jobs:
           curl --fail --silent --show-error --location --retry 3 "$font_base/NotoSansArabic%5Bwdth%2Cwght%5D.ttf" --output assets/NotoSansArabic.ttf
           curl --fail --silent --show-error --location --retry 3 "$font_base/OFL.txt" --output assets/NotoSansArabic-OFL.txt
           test -s assets/NotoSansArabic.ttf
+          python3 scripts/fetch_demo_photos.py
       - run: flutter analyze lib test
       - run: flutter test
       - run: flutter build apk --debug --dart-define="SHOWROOM_AR_URL=$SHOWROOM_AR_URL"
@@ -104,6 +105,7 @@ jobs:
           curl --fail --silent --show-error --location --retry 3 "$font_base/NotoSansArabic%5Bwdth%2Cwght%5D.ttf" --output assets/NotoSansArabic.ttf
           curl --fail --silent --show-error --location --retry 3 "$font_base/OFL.txt" --output assets/NotoSansArabic-OFL.txt
           test -s assets/NotoSansArabic.ttf
+          python3 scripts/fetch_demo_photos.py
       - run: flutter analyze lib test
       - name: Build and package unsigned IPA
         run: |

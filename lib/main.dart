@@ -19,8 +19,9 @@ void main() async {
 const arUrl = String.fromEnvironment('SHOWROOM_AR_URL');
 
 class FurnitureApp extends StatefulWidget {
-  const FurnitureApp(this.preferences, {super.key});
+  const FurnitureApp(this.preferences, {super.key, this.fetchOnline = true});
   final SharedPreferences preferences;
+  final bool fetchOnline;
   @override
   State<FurnitureApp> createState() => _FurnitureAppState();
 }
@@ -118,7 +119,7 @@ class _FurnitureAppState extends State<FurnitureApp> {
       if (quantity != null) cart.putIfAbsent(p.key, () => quantity);
     }
     for (var i = 0; i < stores.length; i++) {
-      loadCatalogue(i);
+      if (widget.fetchOnline) loadCatalogue(i);
     }
   }
 
@@ -150,13 +151,27 @@ class _FurnitureAppState extends State<FurnitureApp> {
       child: const Center(child: Icon(Icons.weekend_outlined, size: 48)),
     );
     if (p.image == null) return placeholder;
-    return Image.network(
+    final network = Image.network(
       p.image!,
       height: height,
       width: double.infinity,
       fit: BoxFit.contain,
       errorBuilder: (_, _, _) => placeholder,
     );
+    final asset = p.store == 0 && p.sku == '10_14_3'
+        ? 'assets/london-sofa.jpg'
+        : p.store == 0 && p.sku == '6_14_5'
+        ? 'assets/london-chair.jpg'
+        : null;
+    return asset == null
+        ? network
+        : Image.asset(
+            asset,
+            height: height,
+            width: double.infinity,
+            fit: BoxFit.contain,
+            errorBuilder: (_, _, _) => network,
+          );
   }
 
   void showProduct(BuildContext context, Product p) {
