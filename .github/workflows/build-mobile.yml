@@ -1,0 +1,68 @@
+name: Build Almutlaq mobile apps
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/build-mobile.yml']
+  workflow_dispatch:
+    inputs:
+      ar_url:
+        description: HTTPS address of the London AR preview
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    env:
+      SHOWROOM_AR_URL: ${{ inputs.ar_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.8'
+      - name: Prepare Android project
+        run: |
+          flutter create --no-pub --platforms android --org com.showroomxr --project-name london_showroom .
+          sed -i '/<manifest /a\    <uses-permission android:name="android.permission.INTERNET" />' android/app/src/main/AndroidManifest.xml
+          flutter pub get
+      - run: flutter analyze lib
+      - run: flutter build apk --debug --dart-define="SHOWROOM_AR_URL=$SHOWROOM_AR_URL"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Almutlaq-Android-APK
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+  ios:
+    runs-on: macos-latest
+    env:
+      SHOWROOM_AR_URL: ${{ inputs.ar_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.8'
+      - run: |
+          flutter create --no-pub --platforms ios --org com.showroomxr --project-name london_showroom .
+          flutter pub get
+      - run: flutter analyze lib
+      - name: Build and package unsigned IPA
+        run: |
+          flutter build ios --release --no-codesign --dart-define="SHOWROOM_AR_URL=$SHOWROOM_AR_URL"
+          mkdir -p build/unsigned/Payload
+          ditto build/ios/iphoneos/Runner.app build/unsigned/Payload/Runner.app
+          cd build/unsigned
+          ditto -c -k --sequesterRsrc --keepParent Payload Almutlaq-Unsigned.ipa
+          unzip -t Almutlaq-Unsigned.ipa
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Almutlaq-Unsigned-IPA
+          path: build/unsigned/Almutlaq-Unsigned.ipa
+          if-no-files-found: error
