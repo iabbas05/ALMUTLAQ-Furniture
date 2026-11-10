@@ -125,7 +125,9 @@ class _StorefrontState extends State<Storefront> {
               onPressed: () async {
                 final current = await controllers[selected].currentUrl();
                 final url = Uri.tryParse(current ?? stores[selected].url);
-                if (url?.scheme == 'https') await openExternal(url!);
+                if (url != null && url.scheme == 'https') {
+                  await openExternal(url);
+                }
               },
               icon: const Icon(Icons.open_in_browser),
               tooltip: 'Open in browser',
@@ -137,10 +139,11 @@ class _StorefrontState extends State<Storefront> {
             if (progress[selected] < 100 && !errors[selected])
               LinearProgressIndicator(value: progress[selected] / 100),
             if (londonOpen[selected] &&
-                ar?.scheme == 'https' &&
-                ar!.host.isNotEmpty)
+                ar != null &&
+                ar.scheme == 'https' &&
+                ar.host.isNotEmpty)
               FilledButton.icon(
-                onPressed: () => openExternal(ar!),
+                onPressed: () => openExternal(ar),
                 icon: const Icon(Icons.view_in_ar),
                 label: const Text('View in your room'),
               ),
