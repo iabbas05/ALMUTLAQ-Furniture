@@ -7,6 +7,7 @@ on:
       - '.github/workflows/build-mobile.yml'
       - 'lib/**'
       - 'pubspec.yaml'
+      - 'ar-preview/**'
   workflow_dispatch:
     inputs:
       ar_url:
@@ -35,6 +36,9 @@ jobs:
         run: |
           flutter create --no-pub --platforms android --org com.showroomxr --project-name london_showroom .
           sed -i '/<manifest /a\    <uses-permission android:name="android.permission.INTERNET" />' android/app/src/main/AndroidManifest.xml
+          python3 ar-preview/generate-model.py
+          mkdir -p assets
+          cp ar-preview/london-10_14_3.glb assets/
           flutter pub get
       - run: flutter analyze lib
       - run: flutter build apk --debug --dart-define="SHOWROOM_AR_URL=$SHOWROOM_AR_URL"
@@ -54,6 +58,9 @@ jobs:
           flutter-version: '3.47.8'
       - run: |
           flutter create --no-pub --platforms ios --org com.showroomxr --project-name london_showroom .
+          python3 ar-preview/generate-model.py
+          mkdir -p assets
+          cp ar-preview/london-10_14_3.glb assets/
           flutter pub get
       - run: flutter analyze lib
       - name: Build and package unsigned IPA
