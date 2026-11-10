@@ -621,15 +621,15 @@ class _RoomPlannerState extends State<RoomPlanner> {
             tr('مقاس القطعة', 'Product size') +
                 ' · ${item.product.width} × ${item.product.depth} × ${item.product.height} ${tr('سم', 'cm')}',
           ),
-          if (outside)
+          if (outside && gaps != null)
             Text(
               tr(
-                'القطعة متجاوزة الجدار بـ ${dimension(-gaps!.reduce(math.min))} $unit',
-                'Piece extends past a wall by ${dimension(-gaps!.reduce(math.min))} $unit',
+                'القطعة متجاوزة الجدار بـ ${dimension(-gaps.reduce(math.min))} $unit',
+                'Piece extends past a wall by ${dimension(-gaps.reduce(math.min))} $unit',
               ),
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             )
-          else
+          else if (gaps != null)
             Wrap(
               spacing: 10,
               children: [
@@ -639,7 +639,7 @@ class _RoomPlannerState extends State<RoomPlanner> {
                   (2, tr('يمين', 'Right')),
                   (3, tr('تحت', 'Bottom')),
                 ])
-                  Text('$side ${dimension(math.max(0, gaps![i]))} $unit'),
+                  Text('$side ${dimension(math.max(0, gaps[i]))} $unit'),
               ],
             ),
           if (collision)
