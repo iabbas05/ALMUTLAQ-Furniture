@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'catalogue.dart';
+import 'room_planner.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -411,7 +412,10 @@ class _FurnitureAppState extends State<FurnitureApp> {
             ),
           ],
         ),
-        body: content(context),
+        body: IndexedStack(
+          index: tab == 3 ? 1 : 0,
+          children: [content(context), RoomPlanner(widget.preferences, arabic)],
+        ),
         bottomNavigationBar: NavigationBar(
           selectedIndex: tab,
           onDestinationSelected: (i) => setState(() => tab = i),
@@ -427,6 +431,10 @@ class _FurnitureAppState extends State<FurnitureApp> {
             NavigationDestination(
               icon: const Icon(Icons.shopping_bag_outlined),
               label: tr('السلة', 'Bag'),
+            ),
+            NavigationDestination(
+              icon: const Icon(Icons.floorplan),
+              label: tr('الغرفة', 'Room'),
             ),
           ],
         ),
