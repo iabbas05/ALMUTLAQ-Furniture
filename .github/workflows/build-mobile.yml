@@ -71,7 +71,8 @@ jobs:
       - run: flutter analyze lib
       - name: Build and package unsigned IPA
         run: |
-          flutter build ios --release --no-codesign --dart-define="SHOWROOM_AR_URL=$SHOWROOM_AR_URL"
+          set -o pipefail
+          flutter build ios --release --no-codesign --verbose --dart-define="SHOWROOM_AR_URL=$SHOWROOM_AR_URL" 2>&1 | tee ios-build.log
           mkdir -p build/unsigned/Payload
           ditto build/ios/iphoneos/Runner.app build/unsigned/Payload/Runner.app
           cd build/unsigned
@@ -82,3 +83,10 @@ jobs:
           name: Almutlaq-Unsigned-IPA
           path: build/unsigned/Almutlaq-Unsigned.ipa
           if-no-files-found: error
+      - name: Upload iOS diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Almutlaq-iOS-Build-Log
+          path: ios-build.log
+          if-no-files-found: ignore
