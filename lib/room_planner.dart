@@ -8,6 +8,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'room_geometry.dart';
 import 'room_drawing.dart';
 import 'room_orbit.dart';
+import 'room_document.dart';
+import 'room_link.dart';
+import 'room_scan.dart';
 
 class RoomPlanner extends StatefulWidget {
   const RoomPlanner(this.preferences, this.arabic, {super.key});
@@ -15,31 +18,101 @@ class RoomPlanner extends StatefulWidget {
   final bool arabic;
 
   @override
-  State<RoomPlanner> createState() => _RoomPlannerState();
+  State<RoomPlanner> createState() => RoomPlannerState();
 }
 
-class _RoomPlannerState extends State<RoomPlanner> {
+class RoomPlannerState extends State<RoomPlanner> {
+  void addProduct(FurnitureSize product) {
+    final item = RoomPiece(product, width / 2, length / 2, 0);
+    if (pieces.length >= 50 || !item.fits(width, length, height)) {
+      message(
+        'القطعة ما تناسب الغرفة، أو وصلت حد القطع.',
+        'This piece does not fit, or the item limit was reached.',
+      );
+      return;
+    }
+    remember();
+    setState(() {
+      pieces.add(item);
+      selected = pieces.length - 1;
+    });
+  }
+
   final widthInput = TextEditingController(text: '400');
   final lengthInput = TextEditingController(text: '500');
   final heightInput = TextEditingController(text: '280');
   int width = 400, length = 500, height = 280, selected = 0;
-  bool perspective = false, metres = false;
-  var openings = <Opening>[];
+  bool perspective = true, metres = false;
+  var openings = <Opening>[
+    const Opening(Wall.top, 140, 120, true, 95, 110, false),
+    const Opening(Wall.left, 360, 90, false, 0, 210, false),
+  ];
+  final undo = <String>[], redo = <String>[];
+  String layoutName = '';
+  RoomDocument get document =>
+      RoomDocument(width, length, height, openings, pieces);
+  void remember() {
+    undo.add(plan());
+    if (undo.length > 30) undo.removeAt(0);
+    redo.clear();
+  }
+
+  void stepBack(bool forward) {
+    final from = forward ? redo : undo, to = forward ? undo : redo;
+    if (from.isEmpty) return;
+    to.add(plan());
+    restore(from.removeLast());
+  }
+
+  Future<void> scanRoom() async {
+    final result = await RoomScan.capture(context, widget.arabic);
+    if (!mounted || result == null) return;
+    if (result['rectangular'] != true) {
+      message(
+        'شكل الغرفة يحتاج مراجعة يدوية. ما غيّرنا تصميمك إلى مستطيل تقريبي.',
+        'This room needs manual review. Your design was not replaced by an approximate rectangle.',
+      );
+      return;
+    }
+    final dims = result['dimensions'] as Map?;
+    if (dims == null) return;
+    final w = ((dims['width'] as num) * 100).round();
+    final d = ((dims['depth'] as num) * 100).round();
+    final h = ((dims['height'] as num) * 100).round();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(tr('راجع قياسات المسح', 'Review the scanned measurements')),
+        content: Text(
+          tr(
+            'عرض ${w / 100} م، عمق ${d / 100} م، ارتفاع ${h / 100} م.\nأبعاد مقترحة تحتاج مراجعة بقياس فعلي قبل الشراء. حدد مواقع الأبواب والدرايش يدويًا.',
+            'Width ${w / 100} m, depth ${d / 100} m, height ${h / 100} m.\nThese are draft measurements. Verify them before buying. Place doors and windows manually.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(tr('إلغاء', 'Cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(tr('استخدم القياسات', 'Use measurements')),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || ok != true) return;
+    widthInput.text = dimension(w);
+    lengthInput.text = dimension(d);
+    heightInput.text = dimension(h);
+    updateRoom();
+  }
 
   String get unit => metres ? tr('م', 'm') : tr('سم', 'cm');
 
   int? centimetres(String input) {
-    const arabicDigits = '٠١٢٣٤٥٦٧٨٩', persianDigits = '۰۱۲۳۴۵۶۷۸۹';
-    var value = input.trim().replaceAll('٫', '.').replaceAll(',', '.');
-    for (var i = 0; i < 10; i++) {
-      value = value
-          .replaceAll(arabicDigits[i], '$i')
-          .replaceAll(persianDigits[i], '$i');
-    }
-    final number = double.tryParse(value);
-    if (number == null || !number.isFinite || number < 0) return null;
-    final cm = number * (metres ? 100 : 1);
-    return cm <= 2500 ? cm.round() : null;
+    final value = parseMeasurement(input, metres: metres);
+    return value != null && value <= 2500 ? value.round() : null;
   }
 
   String dimension(num cm) =>
@@ -186,6 +259,7 @@ class _RoomPlannerState extends State<RoomPlanner> {
       ),
     );
     if (!mounted || result == null) return;
+    remember();
     setState(() {
       if (index == null) {
         openings.add(result);
@@ -304,7 +378,13 @@ class _RoomPlannerState extends State<RoomPlanner> {
     final w = centimetres(widthInput.text);
     final l = centimetres(lengthInput.text);
     final h = centimetres(heightInput.text);
-    if (w == null || l == null || h == null || w < 100 || l < 100 || h < 100) {
+    if (w == null ||
+        l == null ||
+        h == null ||
+        w < 100 ||
+        l < 100 ||
+        h < 200 ||
+        h > 1000) {
       message(
         'أدخل أبعاداً من ١٠٠ إلى ٢٥٠٠ سم أو ما يعادلها بالمتر.',
         'Enter dimensions between 100 and 2500 cm, or their equivalent in metres.',
@@ -318,6 +398,14 @@ class _RoomPlannerState extends State<RoomPlanner> {
       );
       return;
     }
+    if (pieces.any((p) => !p.fits(w, l, h))) {
+      message(
+        'حرّك القطع أو احذف القطعة الكبيرة قبل تصغير الغرفة.',
+        'Move the pieces or remove an oversized item before shrinking the room.',
+      );
+      return;
+    }
+    remember();
     setState(() {
       width = w;
       length = l;
@@ -326,10 +414,22 @@ class _RoomPlannerState extends State<RoomPlanner> {
     });
   }
 
-  void modify(RoomPiece next) => setState(() => pieces[selected] = next);
+  void modify(RoomPiece next, {bool record = true}) {
+    final valid = next.contained(width, length);
+    if (valid == null || valid.product.height > height) {
+      message(
+        'القطعة ما تناسب قياسات الغرفة بهالزاوية.',
+        'This piece does not fit the room at this angle.',
+      );
+      return;
+    }
+    if (record) remember();
+    setState(() => pieces[selected] = valid);
+  }
 
   String plan() => jsonEncode({
     'version': 1,
+    if (layoutName.isNotEmpty) 'name': layoutName,
     'unit': 'cm',
     'width': width,
     'length': length,
@@ -342,8 +442,42 @@ class _RoomPlannerState extends State<RoomPlanner> {
       widget.preferences.getStringList('room-layouts-v1') ?? [];
 
   Future<void> save() async {
+    final input = TextEditingController(text: layoutName);
+    final name = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(tr('احفظ تصميمك', 'Save your design')),
+        content: TextField(
+          controller: input,
+          maxLength: 80,
+          decoration: InputDecoration(
+            labelText: tr('اسم التصميم', 'Design name'),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(tr('إلغاء', 'Cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, input.text.trim()),
+            child: Text(tr('حفظ', 'Save')),
+          ),
+        ],
+      ),
+    );
+    input.dispose();
+    if (!mounted || name == null) return;
+    layoutName = name.isEmpty ? tr('غرفتي', 'My room') : name;
     final value = plan();
     final list = layouts;
+    if (list.length >= 100 && !list.contains(value)) {
+      message(
+        'وصلت ١٠٠ تصميم محفوظ. احتفظ بنسخة قبل إضافة تصميم جديد.',
+        '100 designs are saved. Export a copy before adding another.',
+      );
+      return;
+    }
     if (!list.contains(value)) {
       final ok = await widget.preferences.setStringList('room-layouts-v1', [
         value,
@@ -375,8 +509,8 @@ class _RoomPlannerState extends State<RoomPlanner> {
           l < 100 ||
           w > 2500 ||
           l > 2500 ||
-          h < 100 ||
-          h > 2500 ||
+          h < 200 ||
+          h > 1000 ||
           cuts.any((o) => !o.fits(w, l, h))) {
         throw const FormatException('Invalid room');
       }
@@ -392,6 +526,7 @@ class _RoomPlannerState extends State<RoomPlanner> {
         pieces = items;
         selected = 0;
         saved = value;
+        layoutName = data['name'] as String? ?? '';
       });
     } catch (_) {
       message('تعذّر فتح التصميم', 'Could not open the saved layout.');
@@ -432,9 +567,32 @@ class _RoomPlannerState extends State<RoomPlanner> {
           tr('صمّم غرفتك', 'Design your room'),
           style: Theme.of(context).textTheme.headlineMedium,
         ),
+        Text(
+          tr(
+            'قياسات حقيقية، وتصميم تحفظه وتكمل عليه.',
+            'Measured furniture, in a design you can save and revisit.',
+          ),
+        ),
+        const SizedBox(height: 12),
         Wrap(
           spacing: 8,
           children: [
+            IconButton(
+              tooltip: tr('تراجع', 'Undo'),
+              onPressed: undo.isEmpty ? null : () => stepBack(false),
+              icon: const Icon(Icons.undo),
+            ),
+            IconButton(
+              tooltip: tr('إعادة', 'Redo'),
+              onPressed: redo.isEmpty ? null : () => stepBack(true),
+              icon: const Icon(Icons.redo),
+            ),
+            if (RoomScan.offered)
+              OutlinedButton.icon(
+                onPressed: scanRoom,
+                icon: const Icon(Icons.document_scanner_outlined),
+                label: Text(tr('مسح الغرفة', 'Scan room')),
+              ),
             ChoiceChip(
               label: Text(tr('مخطط', 'Plan')),
               selected: !perspective,
@@ -509,7 +667,10 @@ class _RoomPlannerState extends State<RoomPlanner> {
               return Center(
                 child: GestureDetector(
                   onTapDown: (event) => pickPiece(event.localPosition, scale),
-                  onPanStart: (event) => pickPiece(event.localPosition, scale),
+                  onPanStart: (event) {
+                    pickPiece(event.localPosition, scale);
+                    if (active != null) remember();
+                  },
                   onPanUpdate: item == null
                       ? null
                       : (event) {
@@ -523,6 +684,7 @@ class _RoomPlannerState extends State<RoomPlanner> {
                                   .clamp(0, length)
                                   .toDouble(),
                             ),
+                            record: false,
                           );
                         },
                   child: CustomPaint(
@@ -564,7 +726,10 @@ class _RoomPlannerState extends State<RoomPlanner> {
             subtitle: Text(wallLabel(openings[i].wall)),
             trailing: IconButton(
               icon: const Icon(Icons.close),
-              onPressed: () => setState(() => openings.removeAt(i)),
+              onPressed: () {
+                remember();
+                setState(() => openings.removeAt(i));
+              },
             ),
           ),
         if (item != null) ...[
@@ -597,10 +762,13 @@ class _RoomPlannerState extends State<RoomPlanner> {
                 child: Text(tr('دوّر ١٥°', 'Rotate 15°')),
               ),
               OutlinedButton(
-                onPressed: () => setState(() {
-                  pieces.removeAt(selected);
-                  selected = 0;
-                }),
+                onPressed: () {
+                  remember();
+                  setState(() {
+                    pieces.removeAt(selected);
+                    selected = 0;
+                  });
+                },
                 child: Text(tr('احذف', 'Remove')),
               ),
             ],
@@ -654,17 +822,38 @@ class _RoomPlannerState extends State<RoomPlanner> {
             ),
         ],
         const SizedBox(height: 12),
-        Text(tr('أضف قطعة', 'Add a piece')),
+        Text(
+          tr('أثاث جاهز للمعاينة', 'Furniture ready to preview'),
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        Text(
+          tr(
+            'المجسمات معاد بناؤها بأبعاد الموقع، وتحتاج اعتماد الشكل والقماش من المصنع.',
+            'Models are reconstructed to the website dimensions. Shape and fabric need manufacturer approval.',
+          ),
+        ),
         Wrap(
           spacing: 8,
           children: [
             for (final p in furnitureSizes)
               ActionChip(
                 label: Text(name(p)),
-                onPressed: () => setState(() {
-                  pieces.add(RoomPiece(p, width / 2, length / 2, 0));
-                  selected = pieces.length - 1;
-                }),
+                onPressed: () {
+                  final next = RoomPiece(p, width / 2, length / 2, 0);
+                  if (pieces.length >= 50 ||
+                      !next.fits(width, length, height)) {
+                    message(
+                      'القطعة ما تناسب الغرفة، أو وصلت حد القطع.',
+                      'This piece does not fit, or the item limit was reached.',
+                    );
+                    return;
+                  }
+                  remember();
+                  setState(() {
+                    pieces.add(next);
+                    selected = pieces.length - 1;
+                  });
+                },
               ),
           ],
         ),
@@ -697,6 +886,32 @@ class _RoomPlannerState extends State<RoomPlanner> {
               if (value != null) restore(value);
             },
           ),
+        const SizedBox(height: 16),
+        OutlinedButton.icon(
+          onPressed: () async {
+            try {
+              await Clipboard.setData(ClipboardData(text: document.encode()));
+              if (mounted)
+                message(
+                  'تم نسخ ملف الغرفة. تقدر تلصقه في لوحة الموظف.',
+                  'Room document copied. Paste it into the staff panel.',
+                );
+            } catch (_) {
+              if (mounted)
+                message(
+                  'راجع القطع والفتحات قبل التصدير.',
+                  'Check furniture and openings before exporting.',
+                );
+            }
+          },
+          icon: const Icon(Icons.copy),
+          label: Text(tr('نسخ ملف الغرفة', 'Copy room document')),
+        ),
+        RoomLinkPanel(
+          preferences: widget.preferences,
+          arabic: widget.arabic,
+          document: () => document,
+        ),
       ],
     );
   }

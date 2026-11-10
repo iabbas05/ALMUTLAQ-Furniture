@@ -39,6 +39,8 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(home: Scaffold(body: RoomPlanner(prefs, false))),
     );
+    await tester.tap(find.text('Plan'));
+    await tester.pump();
     await tester.enterText(find.byType(TextField).first, '٤٢٠');
     await tester.tap(find.text('Apply dimensions'));
     await tester.pump();

@@ -2,12 +2,14 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:model_viewer_plus/model_viewer_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'catalogue.dart';
 import 'room_planner.dart';
+import 'room_geometry.dart';
+import 'room_orbit.dart';
+import 'app_updates.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,6 +33,11 @@ class _FurnitureAppState extends State<FurnitureApp> {
   String query = '';
   String? category;
   int visibleCount = 24;
+  String sort = 'default';
+  bool availableOnly = false, modelsOnly = false;
+  final compare = <String>{};
+  final plannerKey = GlobalKey<RoomPlannerState>();
+  final cacheTimes = <int, DateTime>{};
   final client = CatalogueClient();
   final live = <int, List<Product>>{};
   final loading = <int>{};
@@ -53,11 +60,20 @@ class _FurnitureAppState extends State<FurnitureApp> {
       if (!mounted) return;
       setState(() {
         live[index] = products;
+        cacheTimes[index] = DateTime.now();
         if (store == index &&
             !products.any((p) => p.categories.contains(category))) {
           category = null;
         }
       });
+      await widget.preferences.setString(
+        'catalogue-cache-$index',
+        jsonEncode(products.map((p) => p.toCache()).toList()),
+      );
+      await widget.preferences.setString(
+        'catalogue-time-$index',
+        DateTime.now().toIso8601String(),
+      );
     } catch (_) {
       if (mounted) setState(() => failed.add(index));
     } finally {
@@ -70,8 +86,25 @@ class _FurnitureAppState extends State<FurnitureApp> {
     super.initState();
     arabic = widget.preferences.getBool('arabic') ?? true;
     favourites = (widget.preferences.getStringList('favourites') ?? []).toSet();
-    final saved =
-        jsonDecode(widget.preferences.getString('cart') ?? '{}') as Map;
+    Map saved = {};
+    try {
+      saved = jsonDecode(widget.preferences.getString('cart') ?? '{}') as Map;
+    } catch (_) {}
+    for (var i = 0; i < stores.length; i++) {
+      try {
+        final raw = widget.preferences.getString('catalogue-cache-$i');
+        if (raw != null)
+          live[i] = (jsonDecode(raw) as List)
+              .map((p) => Product.fromCache(p as Map<String, dynamic>))
+              .toList();
+        final time = DateTime.tryParse(
+          widget.preferences.getString('catalogue-time-$i') ?? '',
+        );
+        if (time != null) cacheTimes[i] = time;
+      } catch (_) {
+        live.remove(i);
+      }
+    }
     cart = {
       for (final entry in saved.entries)
         if (entry.key is String &&
@@ -173,14 +206,30 @@ class _FurnitureAppState extends State<FurnitureApp> {
                     tr('الصفحة الرسمية للمنتج', 'Official product page'),
                   ),
                 ),
-              if (p.hasModel) ...[
-                const SizedBox(
+              if (p.geometry case final FurnitureSize geometry) ...[
+                const SizedBox(height: 16),
+                RoomOrbit(
+                  width: 360,
+                  length: 360,
                   height: 280,
-                  child: ModelViewer(
-                    src: 'assets/london-10_14_3.glb',
-                    alt: 'London sofa prototype',
-                    cameraControls: true,
+                  openings: const [],
+                  pieces: [RoomPiece(geometry, 180, 180, 0)],
+                  arabic: arabic,
+                ),
+                Text(
+                  tr(
+                    'مجسم بأبعاد المنتج، يحتاج اعتماد الشكل والخامة.',
+                    'Dimensioned reconstruction. Shape and material approval are pending.',
                   ),
+                ),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    setState(() => tab = 3);
+                    plannerKey.currentState?.addProduct(geometry);
+                  },
+                  icon: const Icon(Icons.add_home_outlined),
+                  label: Text(tr('أضف إلى غرفتي', 'Add to my room')),
                 ),
                 if (arUrl.isNotEmpty)
                   OutlinedButton.icon(
@@ -188,15 +237,29 @@ class _FurnitureAppState extends State<FurnitureApp> {
                       final uri = Uri.tryParse(arUrl);
                       if (uri != null && uri.scheme == 'https') {
                         await launchUrl(
-                          uri,
+                          uri.replace(
+                            queryParameters: {
+                              ...uri.queryParameters,
+                              'sku': p.sku,
+                            },
+                          ),
                           mode: LaunchMode.externalApplication,
                         );
                       }
                     },
                     icon: const Icon(Icons.view_in_ar),
-                    label: Text(tr('جرّبها في غرفتك', 'View in your room')),
+                    label: Text(tr('جرّبه في مكانك', 'View in your space')),
                   ),
-              ],
+              ] else
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                    tr(
+                      'تجربة الغرفة تتوفر عقب تجهيز مجسم ومقاسات معتمدة لهالمنتج.',
+                      'Room preview will be available after this product has a model and approved dimensions.',
+                    ),
+                  ),
+                ),
               const SizedBox(height: 12),
               FilledButton.icon(
                 onPressed: p.inStock == false
@@ -236,21 +299,121 @@ class _FurnitureAppState extends State<FurnitureApp> {
               ),
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(
+              children: [
+                if (p.geometry != null) const Icon(Icons.view_in_ar, size: 18),
+                const Spacer(),
+                IconButton(
+                  tooltip: tr('قارن المنتج', 'Compare product'),
+                  onPressed: () => setState(() {
+                    if (!compare.remove(p.key)) {
+                      if (compare.length >= 3) compare.remove(compare.first);
+                      compare.add(p.key);
+                    }
+                  }),
+                  icon: Icon(
+                    compare.contains(p.key)
+                        ? Icons.check_box_outlined
+                        : Icons.compare_arrows,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     ),
   );
 
+  void showComparison(BuildContext context) {
+    final selected = allProducts.where((p) => compare.contains(p.key)).toList();
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => Scaffold(
+          appBar: AppBar(
+            title: Text(tr('قارن اختياراتك', 'Compare your choices')),
+          ),
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
+              columns: [
+                DataColumn(label: Text(tr('التفاصيل', 'Details'))),
+                for (final p in selected)
+                  DataColumn(
+                    label: SizedBox(width: 160, child: Text(title(p))),
+                  ),
+              ],
+              rows: [
+                for (final (label, values) in [
+                  (
+                    tr('المتجر', 'Store'),
+                    selected.map((p) => stores[p.store]).toList(),
+                  ),
+                  (
+                    tr('رمز المنتج', 'SKU'),
+                    selected.map((p) => p.sku).toList(),
+                  ),
+                  (
+                    tr('المقاس', 'Dimensions'),
+                    selected.map((p) => p.size).toList(),
+                  ),
+                  (tr('السعر', 'Price'), selected.map((p) => p.price).toList()),
+                  (
+                    tr('المعاينة', 'Room preview'),
+                    selected
+                        .map(
+                          (p) => p.geometry != null
+                              ? tr('مجسم متاح', 'Model available')
+                              : tr('بانتظار التجهيز', 'Pending'),
+                        )
+                        .toList(),
+                  ),
+                ])
+                  DataRow(
+                    cells: [
+                      DataCell(Text(label)),
+                      for (final value in values)
+                        DataCell(
+                          SizedBox(
+                            width: 160,
+                            child: Text(value.isEmpty ? '…' : value),
+                          ),
+                        ),
+                    ],
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget content(BuildContext context) {
     final selected = products(store);
     final q = query.trim().toLowerCase();
-    final shown = tab == 1
+    final filtered = tab == 1
         ? allProducts.where((p) => favourites.contains(p.key))
         : selected.where(
             (p) =>
                 (category == null || p.categories.contains(category)) &&
+                (!availableOnly || p.inStock == true) &&
+                (!modelsOnly || p.geometry != null) &&
                 '${p.name} ${p.arabic} ${p.sku}'.toLowerCase().contains(q),
           );
+    final shown = filtered.toList();
+    if (sort == 'name') shown.sort((a, b) => title(a).compareTo(title(b)));
+    if (sort == 'priceAsc' || sort == 'priceDesc')
+      shown.sort((a, b) {
+        if (a.numericPrice == null) return b.numericPrice == null ? 0 : 1;
+        if (b.numericPrice == null) return -1;
+        return sort == 'priceAsc'
+            ? a.numericPrice!.compareTo(b.numericPrice!)
+            : b.numericPrice!.compareTo(a.numericPrice!);
+      });
     final items = selected.where((p) => cart.containsKey(p.key));
     final departments = selected.expand((p) => p.categories).toSet().toList()
       ..sort();
@@ -274,11 +437,24 @@ class _FurnitureAppState extends State<FurnitureApp> {
             ],
           ),
         if (tab == 0) ...[
+          const SizedBox(height: 16),
           Text(
             tr('أثاث بيتك', 'Furniture for your home'),
             style: Theme.of(context).textTheme.headlineMedium,
           ),
+          Text(
+            tr(
+              'اختار القطعة، جرّب مقاسها، واحفظ تصميمك.',
+              'Find a piece, preview its size, and keep your design.',
+            ),
+          ),
+          const SizedBox(height: 16),
           if (loading.contains(store)) const LinearProgressIndicator(),
+          if (cacheTimes[store] != null)
+            Text(
+              '${tr('آخر تحديث', 'Updated')} ${cacheTimes[store]!.toLocal().toString().substring(0, 16)}',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
           if (failed.contains(store))
             ListTile(
               title: Text(
@@ -329,6 +505,55 @@ class _FurnitureAppState extends State<FurnitureApp> {
               labelText: tr('ابحث بالاسم أو الكود', 'Search by name or SKU'),
             ),
           ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              FilterChip(
+                label: Text(tr('متوفر', 'In stock')),
+                selected: availableOnly,
+                onSelected: (v) => setState(() => availableOnly = v),
+              ),
+              FilterChip(
+                label: Text(tr('جاهز للغرفة', 'Room preview')),
+                selected: modelsOnly,
+                onSelected: (v) => setState(() => modelsOnly = v),
+              ),
+              if (compare.length >= 2)
+                ActionChip(
+                  label: Text(
+                    tr(
+                      'قارن (${compare.length})',
+                      'Compare (${compare.length})',
+                    ),
+                  ),
+                  onPressed: () => showComparison(context),
+                ),
+            ],
+          ),
+          DropdownButton<String>(
+            isExpanded: true,
+            value: sort,
+            items: [
+              DropdownMenuItem(
+                value: 'default',
+                child: Text(tr('ترتيب الموقع', 'Website order')),
+              ),
+              DropdownMenuItem(value: 'name', child: Text(tr('الاسم', 'Name'))),
+              DropdownMenuItem(
+                value: 'priceAsc',
+                child: Text(tr('السعر: الأقل أولًا', 'Price: low to high')),
+              ),
+              DropdownMenuItem(
+                value: 'priceDesc',
+                child: Text(tr('السعر: الأعلى أولًا', 'Price: high to low')),
+              ),
+            ],
+            onChanged: (v) {
+              if (v != null) setState(() => sort = v);
+            },
+          ),
         ],
         const SizedBox(height: 12),
         if (tab == 2) ...[
@@ -366,15 +591,20 @@ class _FurnitureAppState extends State<FurnitureApp> {
               final columns = constraints.maxWidth < 340
                   ? 1
                   : (constraints.maxWidth / 185).floor().clamp(2, 5).toInt();
-              return GridView.count(
-                crossAxisCount: columns,
-                mainAxisExtent: 260,
+              return GridView.builder(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: columns,
+                  mainAxisExtent:
+                      330 +
+                      (MediaQuery.textScalerOf(context).scale(20) - 20) * 4,
+                ),
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                children: [
-                  for (final p in shown.take(visibleCount))
-                    productCard(context, p),
-                ],
+                itemCount: shown.length < visibleCount
+                    ? shown.length
+                    : visibleCount,
+                itemBuilder: (context, index) =>
+                    productCard(context, shown[index]),
               );
             },
           ),
@@ -398,12 +628,49 @@ class _FurnitureAppState extends State<FurnitureApp> {
       colorSchemeSeed: const Color(0xff365348),
       fontFamily: arabic ? 'NotoSansArabic' : null,
       scaffoldBackgroundColor: const Color(0xfff8f6f1),
+      useMaterial3: true,
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Color(0xfff8f6f1),
+        centerTitle: false,
+      ),
+      cardTheme: const CardThemeData(
+        elevation: 0,
+        color: Color(0xffefebe3),
+        margin: EdgeInsets.all(6),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(16)),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: const Color(0xffeeece5),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+      ),
+      textTheme: const TextTheme(
+        headlineMedium: TextStyle(
+          fontSize: 28,
+          fontWeight: FontWeight.w700,
+          height: 1.4,
+        ),
+        titleMedium: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        bodyMedium: TextStyle(fontSize: 14, height: 1.6),
+      ),
     ),
     home: Builder(
       builder: (context) => Scaffold(
         appBar: AppBar(
           title: Text(tr('المطلق للأثاث', 'Almutlaq Furniture')),
           actions: [
+            IconButton(
+              tooltip: tr('تحديث التطبيق', 'App updates'),
+              icon: const Icon(Icons.system_update_alt),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => AppUpdates(arabic)),
+              ),
+            ),
             TextButton(
               onPressed: () {
                 setState(() => arabic = !arabic);
@@ -415,7 +682,10 @@ class _FurnitureAppState extends State<FurnitureApp> {
         ),
         body: IndexedStack(
           index: tab == 3 ? 1 : 0,
-          children: [content(context), RoomPlanner(widget.preferences, arabic)],
+          children: [
+            content(context),
+            RoomPlanner(widget.preferences, arabic, key: plannerKey),
+          ],
         ),
         bottomNavigationBar: NavigationBar(
           selectedIndex: tab,

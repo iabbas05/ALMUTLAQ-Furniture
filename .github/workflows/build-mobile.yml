@@ -3,32 +3,47 @@ name: Build Almutlaq mobile apps
 on:
   push:
     branches: [main]
-    paths:
-      - '.github/workflows/build-mobile.yml'
-      - 'lib/**'
-      - 'test/**'
-      - 'pubspec.yaml'
-      - 'ar-preview/**'
+    paths: ['.github/workflows/build-mobile.yml', 'lib/**', 'test/**', 'pubspec.yaml', 'tools/**', 'native/**', 'scripts/**', 'server/**', 'unity/**']
   pull_request:
     branches: [main]
-    paths:
-      - '.github/workflows/build-mobile.yml'
-      - 'lib/**'
-      - 'test/**'
-      - 'pubspec.yaml'
-      - 'ar-preview/**'
+    paths: ['.github/workflows/build-mobile.yml', 'lib/**', 'test/**', 'pubspec.yaml', 'tools/**', 'native/**', 'scripts/**', 'server/**', 'unity/**']
   workflow_dispatch:
     inputs:
       ar_url:
-        description: HTTPS address of the London AR preview
+        description: HTTPS URL of the published AR preview
         required: false
         type: string
 
 permissions:
   contents: read
+concurrency:
+  group: mobile-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
+  protocol:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Generate both dimensioned demo models
+        run: |
+          python tools/generate_demo_models.py --output generated-models
+          mkdir -p assets server/models
+          cp generated-models/*.glb assets/
+          cp generated-models/*.mesh.json server/models/
+      - name: Test room protocol, storage, pairing, publishing and HTTP boundaries
+        run: python -m unittest discover -s server -p test_showroom.py -v
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Almutlaq-Dimensioned-Demo-Models
+          path: generated-models/
+          if-no-files-found: error
+
   android:
+    needs: protocol
     runs-on: ubuntu-latest
     env:
       SHOWROOM_AR_URL: ${{ inputs.ar_url }}
@@ -44,27 +59,28 @@ jobs:
       - name: Prepare Android project
         run: |
           flutter create --no-pub --platforms android --org com.showroomxr --project-name london_showroom .
-          sed -i '/<manifest /a\    <uses-permission android:name="android.permission.INTERNET" />' android/app/src/main/AndroidManifest.xml
+          python3 scripts/prepare_platforms.py android
           flutter pub get
-      - name: Generate and verify London model
+      - name: Generate model and Arabic font assets
         run: |
-          python3 ar-preview/generate-model.py
+          python3 tools/generate_demo_models.py --output generated-models
           mkdir -p assets
-          cp ar-preview/london-10_14_3.glb assets/london-10_14_3.glb
-          test -s assets/london-10_14_3.glb
+          cp generated-models/*.glb assets/
           font_base='https://raw.githubusercontent.com/google/fonts/main/ofl/notosansarabic'
           curl --fail --silent --show-error --location --retry 3 "$font_base/NotoSansArabic%5Bwdth%2Cwght%5D.ttf" --output assets/NotoSansArabic.ttf
           curl --fail --silent --show-error --location --retry 3 "$font_base/OFL.txt" --output assets/NotoSansArabic-OFL.txt
           test -s assets/NotoSansArabic.ttf
-      - run: flutter analyze lib
-      - run: flutter test test/room_planner_test.dart
+      - run: flutter analyze lib test
+      - run: flutter test
       - run: flutter build apk --debug --dart-define="SHOWROOM_AR_URL=$SHOWROOM_AR_URL"
       - uses: actions/upload-artifact@v4
         with:
           name: Almutlaq-Android-APK
           path: build/app/outputs/flutter-apk/app-debug.apk
           if-no-files-found: error
+
   ios:
+    needs: protocol
     runs-on: macos-latest
     env:
       SHOWROOM_AR_URL: ${{ inputs.ar_url }}
@@ -73,21 +89,22 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.47.8'
-      - run: |
-          flutter create --no-pub --platforms ios --org com.showroomxr --project-name london_showroom .
-          flutter pub get
-      - name: Generate and verify London model
+      - name: Prepare iOS project and RoomPlan bridge
         run: |
-          python3 ar-preview/generate-model.py
+          flutter create --no-pub --platforms ios --org com.showroomxr --project-name london_showroom .
+          python3 scripts/prepare_platforms.py ios
+          ruby -rxcodeproj -e 'p = Xcodeproj::Project.open("ios/Runner.xcodeproj"); g = p.main_group["Runner"]; f = g.files.find { |x| x.path == "RoomScanPlugin.swift" } || g.new_file("RoomScanPlugin.swift"); t = p.targets.find { |x| x.name == "Runner" }; t.source_build_phase.add_file_reference(f) unless t.source_build_phase.files_references.include?(f); p.save'
+          flutter pub get
+      - name: Generate model and Arabic font assets
+        run: |
+          python3 tools/generate_demo_models.py --output generated-models
           mkdir -p assets
-          cp ar-preview/london-10_14_3.glb assets/london-10_14_3.glb
-          test -s assets/london-10_14_3.glb
+          cp generated-models/*.glb assets/
           font_base='https://raw.githubusercontent.com/google/fonts/main/ofl/notosansarabic'
           curl --fail --silent --show-error --location --retry 3 "$font_base/NotoSansArabic%5Bwdth%2Cwght%5D.ttf" --output assets/NotoSansArabic.ttf
           curl --fail --silent --show-error --location --retry 3 "$font_base/OFL.txt" --output assets/NotoSansArabic-OFL.txt
           test -s assets/NotoSansArabic.ttf
-      - run: flutter analyze lib
-      - run: flutter test test/room_planner_test.dart
+      - run: flutter analyze lib test
       - name: Build and package unsigned IPA
         run: |
           set -o pipefail

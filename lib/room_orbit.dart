@@ -14,8 +14,12 @@ typedef RoomFace = ({List<Point3> points, Color color});
 Point3 point(double x, double y, double z) => (x: x, y: y, z: z);
 
 class LondonMesh {
-  static Future<List<RoomFace>> load() async {
-    final asset = await rootBundle.load('assets/london-10_14_3.glb');
+  static final _cache = <String, Future<List<RoomFace>>>{};
+  static Future<List<RoomFace>> load([
+    String path = 'assets/london-10_14_3.glb',
+  ]) => _cache.putIfAbsent(path, () => _decode(path));
+  static Future<List<RoomFace>> _decode(String path) async {
+    final asset = await rootBundle.load(path);
     final bytes = Uint8List.sublistView(asset);
     final size = asset.getUint32(12, Endian.little);
     final gltf = jsonDecode(utf8.decode(bytes.sublist(20, 20 + size))) as Map;
@@ -102,11 +106,20 @@ class RoomOrbit extends StatefulWidget {
 }
 
 class _RoomOrbitState extends State<RoomOrbit> {
-  late final model = LondonMesh.load();
+  late final model = () async {
+    final result = <String, List<RoomFace>>{};
+    for (final product in furnitureSizes) {
+      if (product.modelAsset != null)
+        result[product.sku] = await LondonMesh.load(product.modelAsset!);
+    }
+    return result;
+  }();
   double yaw = math.pi / 4, elevation = .55, zoom = 1, baseZoom = 1;
 
   @override
-  Widget build(BuildContext context) => FutureBuilder<List<RoomFace>>(
+  Widget build(
+    BuildContext context,
+  ) => FutureBuilder<Map<String, List<RoomFace>>>(
     future: model,
     builder: (context, snapshot) {
       if (snapshot.connectionState != ConnectionState.done) {
@@ -136,7 +149,7 @@ class _RoomOrbitState extends State<RoomOrbit> {
                 child: CustomPaint(
                   painter: _OrbitPainter(
                     widget,
-                    snapshot.data ?? const [],
+                    snapshot.data ?? const {},
                     yaw,
                     elevation,
                     zoom,
@@ -154,7 +167,7 @@ class _RoomOrbitState extends State<RoomOrbit> {
             Text(
               widget.arabic
                   ? 'تعذّر تحميل موديل London. يُعرض شكل تقريبي.'
-                  : 'London model unavailable. Showing a placeholder.',
+                  : 'Model unavailable. Please retry.',
             ),
           TextButton(
             onPressed: () => setState(() {
@@ -173,7 +186,7 @@ class _RoomOrbitState extends State<RoomOrbit> {
 class _OrbitPainter extends CustomPainter {
   _OrbitPainter(this.room, this.london, this.yaw, this.elevation, this.zoom);
   final RoomOrbit room;
-  final List<RoomFace> london;
+  final Map<String, List<RoomFace>> london;
   final double yaw, elevation, zoom;
 
   @override
@@ -282,75 +295,11 @@ class _OrbitPainter extends CustomPainter {
         piece.y + p.x * ps + p.y * pc,
         p.z,
       );
-      if (piece.product.sku == '10_14_3' && london.isNotEmpty) {
-        for (final face in london) {
-          add(face.points.map(at).toList(), face.color);
-        }
-        continue;
+      final faces = london[piece.product.sku];
+      if (faces == null) continue;
+      for (final face in faces) {
+        add(face.points.map(at).toList(), face.color);
       }
-      final pw = piece.product.width.toDouble(),
-          pd = piece.product.depth.toDouble(),
-          ph = piece.product.height.toDouble();
-      void box(
-        double x,
-        double y,
-        double bw,
-        double bd,
-        double low,
-        double high,
-        Color color,
-      ) {
-        final vertices = [
-          for (final z in [low, high]) ...[
-            at(point(x, y, z)),
-            at(point(x + bw, y, z)),
-            at(point(x + bw, y + bd, z)),
-            at(point(x, y + bd, z)),
-          ],
-        ];
-        for (final face in [
-          [4, 5, 6, 7],
-          [0, 1, 5, 4],
-          [1, 2, 6, 5],
-          [2, 3, 7, 6],
-          [3, 0, 4, 7],
-        ]) {
-          add(face.map((i) => vertices[i]).toList(), color);
-        }
-      }
-
-      box(-pw / 2, -pd / 2, pw, pd, 0, ph * .41, RoomDrawing.upholstery);
-      box(-pw / 2, -pd / 2, pw, pd * .23, ph * .41, ph, RoomDrawing.upholstery);
-      final seats = piece.product.sku == '6_14_5' ? 1 : 3;
-      for (var i = 0; i < seats; i++) {
-        box(
-          -pw * .34 + i * pw * .68 / seats,
-          -pd * .25,
-          pw * .65 / seats,
-          pd * .70,
-          ph * .41,
-          ph * .54,
-          RoomDrawing.cushion,
-        );
-      }
-      box(
-        -pw / 2,
-        -pd * .35,
-        pw * .15,
-        pd * .85,
-        ph * .41,
-        ph * .70,
-        RoomDrawing.upholstery,
-      );
-      box(
-        pw * .35,
-        -pd * .35,
-        pw * .15,
-        pd * .85,
-        ph * .41,
-        ph * .70,
-        RoomDrawing.upholstery,
-      );
     }
     surfaces.sort((a, b) => a.depth.compareTo(b.depth));
     for (final face in surfaces) {

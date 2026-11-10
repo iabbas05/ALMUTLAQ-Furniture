@@ -7,41 +7,87 @@ class FurnitureSize {
     this.ar,
     this.width,
     this.depth,
-    this.height,
-  );
+    this.height, {
+    this.modelAsset,
+    this.image,
+    this.store = 0,
+  });
   final String sku, en, ar;
   final int width, depth, height;
+  final int store;
+  final String? modelAsset, image;
+  String get productId => '${store == 0 ? 'factory' : 'cityw'}:$sku';
 }
 
 const furnitureSizes = [
   FurnitureSize(
     '10_14_3',
     'London three-seater',
-    'كنبة لندن ثلاثية',
+    'كنبة لندن، ثلاثة مقاعد',
     210,
     103,
     100,
+    modelAsset: 'assets/london-10_14_3.glb',
+    image: 'https://thefactoryfurniture.com/wp-content/uploads/2026/11/10-14-00003-1.jpg',
   ),
-  FurnitureSize('6_14_5', 'London chair', 'كرسي لندن', 84, 95, 94),
   FurnitureSize(
-    '23_88_1',
-    'Warm Beige three-seater',
-    'كنبة بيج دافئ',
-    230,
-    101,
-    78,
+    '6_14_5',
+    'London chair',
+    'كرسي لندن',
+    84,
+    95,
+    94,
+    modelAsset: 'assets/london-6_14_5.glb',
+    image: 'https://thefactoryfurniture.com/wp-content/uploads/2026/11/06-14-00005-1.jpg',
   ),
 ];
 
+/// All planner coordinates are centimetres. Wire coordinates are metres.
+double? parseMeasurement(String input, {bool metres = false}) {
+  const ar = '٠١٢٣٤٥٦٧٨٩', fa = '۰۱۲۳۴۵۶۷۸۹';
+  var value = input.trim().replaceAll('٫', '.').replaceAll(',', '.');
+  for (var i = 0; i < 10; i++) {
+    value = value.replaceAll(ar[i], '$i').replaceAll(fa[i], '$i');
+  }
+  final n = double.tryParse(value);
+  if (n == null || !n.isFinite || n < 0) return null;
+  return n * (metres ? 100 : 1);
+}
+
 class RoomPiece {
-  const RoomPiece(this.product, this.x, this.y, this.angle);
+  const RoomPiece(
+    this.product,
+    this.x,
+    this.y,
+    this.angle, {
+    this.modelVersion,
+  });
   final FurnitureSize product;
   final double x, y;
   final int angle;
+  final String? modelVersion;
 
-  RoomPiece move(double x, double y) => RoomPiece(product, x, y, angle);
-  RoomPiece turn() => RoomPiece(product, x, y, (angle + 15) % 360);
+  RoomPiece move(double x, double y) =>
+      RoomPiece(product, x, y, angle, modelVersion: modelVersion);
+  RoomPiece turn() =>
+      RoomPiece(product, x, y, (angle + 15) % 360, modelVersion: modelVersion);
   RoomPiece replace(FurnitureSize next) => RoomPiece(next, x, y, angle);
+
+  /// Moves the whole footprint inside a room, without changing its size.
+  RoomPiece? contained(int width, int length) {
+    final gaps = margins(width, length);
+    final spanX = width - gaps[0] - gaps[2];
+    final spanY = length - gaps[1] - gaps[3];
+    if (spanX > width + 1e-7 || spanY > length + 1e-7) return null;
+    return move(
+      x + math.max(0, -gaps[0]) - math.max(0, -gaps[2]),
+      y + math.max(0, -gaps[1]) - math.max(0, -gaps[3]),
+    );
+  }
+
+  bool fits(int width, int length, int height) =>
+      product.height <= height &&
+      margins(width, length).every((n) => n >= -1e-7);
 
   List<math.Point<double>> get corners {
     final radians = angle * math.pi / 180;
@@ -91,6 +137,7 @@ class RoomPiece {
     'x': x,
     'y': y,
     'angle': angle,
+    if (modelVersion != null) 'modelVersion': modelVersion!,
   };
 
   static RoomPiece fromJson(Map<String, dynamic> data) {
@@ -99,6 +146,12 @@ class RoomPiece {
     final y = (data['y'] as num).toDouble();
     if (!x.isFinite || !y.isFinite)
       throw const FormatException('Invalid position');
-    return RoomPiece(item, x, y, (data['angle'] as int) % 360);
+    return RoomPiece(
+      item,
+      x,
+      y,
+      (data['angle'] as int) % 360,
+      modelVersion: data['modelVersion'] as String?,
+    );
   }
 }

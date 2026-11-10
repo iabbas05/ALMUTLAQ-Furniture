@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:html/parser.dart' as html;
 
+import 'room_geometry.dart';
+
 const stores = ['The Factory', 'CityW'];
 const storeHosts = ['thefactoryfurniture.com', 'cityw.com.sa'];
 
@@ -35,6 +37,54 @@ class Product {
   final bool? inStock;
 
   String get key => '$store:${sku.isEmpty ? id : sku}';
+  FurnitureSize? get geometry {
+    for (final p in furnitureSizes) {
+      if (p.sku == sku && p.store == store && hasModel) return p;
+    }
+    return null;
+  }
+
+  double? get numericPrice {
+    final match = RegExp(r'\d+(?:\.\d+)?').firstMatch(price);
+    return match == null ? null : double.tryParse(match.group(0)!);
+  }
+
+  Map<String, dynamic> toCache() => {
+    'sku': sku,
+    'store': store,
+    'name': name,
+    'arabic': arabic,
+    'size': size,
+    'details': details,
+    'arabicDetails': arabicDetails,
+    'price': price,
+    'id': id,
+    'image': image,
+    'link': link,
+    'gallery': gallery,
+    'categories': categories,
+    'attributes': attributes,
+    'inStock': inStock,
+    'hasModel': hasModel,
+  };
+  factory Product.fromCache(Map<String, dynamic> d) => Product(
+    d['sku'] as String,
+    d['store'] as int,
+    d['name'] as String,
+    d['arabic'] as String,
+    d['size'] as String,
+    d['details'] as String,
+    d['arabicDetails'] as String,
+    price: d['price'] as String,
+    id: d['id'] as int?,
+    image: d['image'] as String?,
+    link: d['link'] as String?,
+    gallery: (d['gallery'] as List).cast<String>(),
+    categories: (d['categories'] as List).cast<String>(),
+    attributes: (d['attributes'] as List).cast<String>(),
+    inStock: d['inStock'] as bool?,
+    hasModel: d['hasModel'] as bool? ?? false,
+  );
 
   factory Product.fromStore(int store, Map<String, dynamic> data) {
     final sku = data['sku']?.toString() ?? '';
@@ -63,7 +113,7 @@ class Product {
         dimensions.every(
           (part) => part != null && part.toString().trim().isNotEmpty,
         )
-        ? dimensions.join(' × ')
+        ? '${dimensions.join(' × ')} (source units)'
         : known?.size ?? '';
     return Product(
       sku,
@@ -188,6 +238,8 @@ class CatalogueClient {
             throw const FormatException('Invalid page count.');
         }
       }
+      if (items.isEmpty)
+        throw const FormatException('Empty catalogue response.');
       return items.values.toList();
     } finally {
       client.close(force: true);
@@ -229,6 +281,7 @@ const sampleCatalogue = [
     image: 'https://thefactoryfurniture.com/wp-content/uploads/2026/11/06-14-00005-1.jpg',
     link: 'https://thefactoryfurniture.com/ar/shop/sofa-chair-white-london/',
     categories: ['Chairs'],
+    hasModel: true,
   ),
   Product(
     '23_88_1',
