@@ -396,6 +396,7 @@ class _FurnitureAppState extends State<FurnitureApp> {
     title: 'Almutlaq Furniture',
     theme: ThemeData(
       colorSchemeSeed: const Color(0xff365348),
+      fontFamily: arabic ? 'NotoSansArabic' : null,
       scaffoldBackgroundColor: const Color(0xfff8f6f1),
     ),
     home: Builder(
