@@ -1,13 +1,18 @@
 name: london_showroom
-description: Live furniture storefronts for The Factory and CityW.
+description: Native furniture storefront prototype for The Factory and CityW.
 publish_to: none
-version: 0.2.0+2
+version: 0.3.0+3
 environment:
   sdk: ^3.8.0
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  model_viewer_plus: 1.10.0
+  shared_preferences: ^2.5.3
   url_launcher: ^6.3.1
-  webview_flutter: 4.14.1
 flutter:
   uses-material-design: true
+  assets:
+    - assets/london-10_14_3.glb
