@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'room_geometry.dart';
 import 'room_drawing.dart';
+import 'room_orbit.dart';
 
 class RoomPlanner extends StatefulWidget {
   const RoomPlanner(this.preferences, this.arabic, {super.key});
@@ -489,50 +490,55 @@ class _RoomPlannerState extends State<RoomPlanner> {
             child: Text(tr('تطبيق القياسات', 'Apply dimensions')),
           ),
         ),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final scale = math.min(constraints.maxWidth / width, 295 / length);
-            return Center(
-              child: GestureDetector(
-                onTapDown: perspective
-                    ? null
-                    : (event) => pickPiece(event.localPosition, scale),
-                onPanStart: perspective
-                    ? null
-                    : (event) => pickPiece(event.localPosition, scale),
-                onPanUpdate: perspective || item == null
-                    ? null
-                    : (event) {
-                        final piece = active!;
-                        modify(
-                          piece.move(
-                            (piece.x + event.delta.dx / scale)
-                                .clamp(0, width)
-                                .toDouble(),
-                            (piece.y + event.delta.dy / scale)
-                                .clamp(0, length)
-                                .toDouble(),
-                          ),
-                        );
-                      },
-                child: CustomPaint(
-                  size: perspective
-                      ? Size(constraints.maxWidth, 315)
-                      : Size(width * scale, length * scale),
-                  painter: RoomDrawing(
-                    pieces,
-                    openings,
-                    selected,
-                    width,
-                    length,
-                    height,
-                    perspective,
+        if (perspective)
+          RoomOrbit(
+            width: width,
+            length: length,
+            height: height,
+            openings: openings,
+            pieces: pieces,
+            arabic: widget.arabic,
+          )
+        else
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final scale = math.min(
+                constraints.maxWidth / width,
+                295 / length,
+              );
+              return Center(
+                child: GestureDetector(
+                  onTapDown: (event) => pickPiece(event.localPosition, scale),
+                  onPanStart: (event) => pickPiece(event.localPosition, scale),
+                  onPanUpdate: item == null
+                      ? null
+                      : (event) {
+                          final piece = active!;
+                          modify(
+                            piece.move(
+                              (piece.x + event.delta.dx / scale)
+                                  .clamp(0, width)
+                                  .toDouble(),
+                              (piece.y + event.delta.dy / scale)
+                                  .clamp(0, length)
+                                  .toDouble(),
+                            ),
+                          );
+                        },
+                  child: CustomPaint(
+                    size: Size(width * scale, length * scale),
+                    painter: RoomDrawing(
+                      pieces,
+                      openings,
+                      selected,
+                      width,
+                      length,
+                    ),
                   ),
                 ),
-              ),
-            );
-          },
-        ),
+              );
+            },
+          ),
         Wrap(
           spacing: 8,
           children: [
