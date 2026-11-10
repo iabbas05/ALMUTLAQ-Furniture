@@ -8,6 +8,13 @@ on:
       - 'lib/**'
       - 'pubspec.yaml'
       - 'ar-preview/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/build-mobile.yml'
+      - 'lib/**'
+      - 'pubspec.yaml'
+      - 'ar-preview/**'
   workflow_dispatch:
     inputs:
       ar_url:
