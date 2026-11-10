@@ -52,7 +52,7 @@ class LondonMesh {
           (math.pow(rgba[i], 1 / 2.2) * 255).round().clamp(0, 255).toInt();
       final color = Color.fromARGB(255, channel(0), channel(1), channel(2));
       final vertices = [
-        for (var i = 0; i < positions['count'] as int; i++)
+        for (var i = 0; i < (positions['count'] as int); i++)
           point(
             (asset.getFloat32(start(positions) + i * 12, Endian.little) +
                     shift[0]) *
@@ -65,7 +65,7 @@ class LondonMesh {
                 100,
           ),
       ];
-      for (var i = 0; i < indices['count'] as int; i += 3) {
+      for (var i = 0; i < (indices['count'] as int); i += 3) {
         faces.add((
           points: [
             for (var j = 0; j < 3; j++)
