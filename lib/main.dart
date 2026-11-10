@@ -1,188 +1,335 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:model_viewer_plus/model_viewer_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:webview_flutter/webview_flutter.dart';
 
-void main() => runApp(const ShowroomApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(FurnitureApp(await SharedPreferences.getInstance()));
+}
 
-const stores = [
-  (name: 'The Factory', url: 'https://thefactoryfurniture.com/ar/'),
-  (name: 'CityW', url: 'https://cityw.com.sa/'),
-];
+const stores = ['The Factory', 'CityW'];
 const arUrl = String.fromEnvironment('SHOWROOM_AR_URL');
-const londonUrl =
-    'https://thefactoryfurniture.com/ar/shop/sofa-three-seater-white-3-seater-london/';
 
-class ShowroomApp extends StatelessWidget {
-  const ShowroomApp({super.key});
-
-  @override
-  Widget build(BuildContext context) => MaterialApp(
-    title: 'Almutlaq Furniture',
-    theme: ThemeData(colorSchemeSeed: const Color(0xff365348)),
-    home: const Storefront(),
-  );
+class Product {
+  const Product(
+    this.sku,
+    this.store,
+    this.name,
+    this.arabic,
+    this.size,
+    this.details,
+    this.arabicDetails, {
+    this.image,
+    this.hasModel = false,
+  });
+  final String sku, name, arabic, size, details, arabicDetails;
+  final int store;
+  final String? image;
+  final bool hasModel;
 }
 
-class Storefront extends StatefulWidget {
-  const Storefront({super.key});
+const catalogue = [
+  Product(
+    '10_14_3',
+    0,
+    'London three-seater',
+    '�렡 ��� �韣�',
+    '210 ? 103 ? 100 cm',
+    'White upholstered sofa with three seats.',
+    '�렡 ����� �뤑�� ��韣� ���.',
+    image: 'https://thefactoryfurniture.com/wp-content/uploads/2026/11/10-14-00003-1.jpg',
+    hasModel: true,
+  ),
+  Product(
+    '6_14_5',
+    0,
+    'London chair',
+    '詫� ���',
+    '84 ? 95 ? 94 cm',
+    'White upholstered single seat.',
+    '詫� ���� �뤑� ���� ퟥ�.',
+    image: 'https://thefactoryfurniture.com/wp-content/uploads/2026/11/06-14-00005-1.jpg',
+  ),
+  Product(
+    '23_88_1',
+    1,
+    'Warm Beige three-seater',
+    '�렡 �� ��� �韣�',
+    '230 ? 101 ? 78 cm',
+    'Woven fabric with a solid wood frame.',
+    '�꟬ ���� �� �៩ �� �馬� ���.',
+  ),
+];
 
+class FurnitureApp extends StatefulWidget {
+  const FurnitureApp(this.preferences, {super.key});
+  final SharedPreferences preferences;
   @override
-  State<Storefront> createState() => _StorefrontState();
+  State<FurnitureApp> createState() => _FurnitureAppState();
 }
 
-class _StorefrontState extends State<Storefront> {
-  late final List<WebViewController> controllers;
-  final progress = [0, 0];
-  final londonOpen = [false, false];
-  final errors = [false, false];
-  int selected = 0;
+class _FurnitureAppState extends State<FurnitureApp> {
+  late bool arabic;
+  late Set<String> favourites;
+  late Map<String, int> cart;
+  int store = 0, tab = 0;
+  String query = '';
 
   @override
   void initState() {
     super.initState();
-    controllers = List.generate(stores.length, makeController);
+    arabic = widget.preferences.getBool('arabic') ?? true;
+    favourites = (widget.preferences.getStringList('favourites') ?? []).toSet();
+    final saved =
+        jsonDecode(widget.preferences.getString('cart') ?? '{}') as Map;
+    cart = {
+      for (final p in catalogue)
+        if (saved[p.sku] is int && (saved[p.sku] as int) > 0)
+          p.sku: saved[p.sku] as int,
+    };
   }
 
-  WebViewController makeController(int index) => WebViewController()
-    ..setJavaScriptMode(JavaScriptMode.unrestricted)
-    ..setNavigationDelegate(
-      NavigationDelegate(
-        onProgress: (value) {
-          if (mounted) setState(() => progress[index] = value);
-        },
-        onPageStarted: (url) {
-          if (!mounted) return;
-          setState(() {
-            errors[index] = false;
-            final current = Uri.tryParse(url);
-            final london = Uri.parse(londonUrl);
-            londonOpen[index] =
-                current?.host == london.host &&
-                current?.path.replaceFirst(RegExp(r'/$'), '') ==
-                    london.path.replaceFirst(RegExp(r'/$'), '');
-          });
-        },
-        onWebResourceError: (error) {
-          if (mounted && error.isForMainFrame == true) {
-            setState(() => errors[index] = true);
-          }
-        },
-        onNavigationRequest: (request) {
-          final url = Uri.tryParse(request.url);
-          if (url?.scheme == 'https' || url?.scheme == 'about') {
-            return NavigationDecision.navigate;
-          }
-          if (url != null && ['tel', 'mailto'].contains(url.scheme)) {
-            openExternal(url);
-          }
-          return NavigationDecision.prevent;
-        },
-      ),
-    )
-    ..loadRequest(Uri.parse(stores[index].url));
+  String tr(String ar, String en) => arabic ? ar : en;
+  String title(Product p) => arabic ? p.arabic : p.name;
 
-  Future<void> openExternal(Uri uri) async {
-    try {
-      if (await launchUrl(uri, mode: LaunchMode.externalApplication)) return;
-    } catch (_) {
-      // The platform might not have a handler for this link.
-    }
-    if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Could not open the link.')));
-    }
+  void toggleFavourite(Product p) {
+    setState(() {
+      if (!favourites.remove(p.sku)) favourites.add(p.sku);
+    });
+    widget.preferences.setStringList('favourites', favourites.toList());
   }
 
-  Future<void> goBack() async {
-    final controller = controllers[selected];
-    if (await controller.canGoBack()) await controller.goBack();
+  void changeQuantity(Product p, int delta) {
+    setState(() {
+      final next = (cart[p.sku] ?? 0) + delta;
+      if (next <= 0) {
+        cart.remove(p.sku);
+      } else {
+        cart[p.sku] = next;
+      }
+    });
+    widget.preferences.setString('cart', jsonEncode(cart));
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final ar = Uri.tryParse(arUrl);
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) goBack();
-      },
-      child: Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            onPressed: goBack,
-            icon: const Icon(Icons.arrow_back),
-            tooltip: 'Back',
-          ),
-          title: Text(stores[selected].name),
-          actions: [
-            IconButton(
-              onPressed: () => controllers[selected].reload(),
-              icon: const Icon(Icons.refresh),
-              tooltip: 'Reload',
-            ),
-            IconButton(
-              onPressed: () async {
-                final current = await controllers[selected].currentUrl();
-                final url = Uri.tryParse(current ?? stores[selected].url);
-                if (url != null && url.scheme == 'https') {
-                  await openExternal(url);
-                }
-              },
-              icon: const Icon(Icons.open_in_browser),
-              tooltip: 'Open in browser',
-            ),
-          ],
-        ),
-        body: Column(
-          children: [
-            if (progress[selected] < 100 && !errors[selected])
-              LinearProgressIndicator(value: progress[selected] / 100),
-            if (londonOpen[selected] &&
-                ar != null &&
-                ar.scheme == 'https' &&
-                ar.host.isNotEmpty)
-              FilledButton.icon(
-                onPressed: () => openExternal(ar),
-                icon: const Icon(Icons.view_in_ar),
-                label: const Text('View in your room'),
-              ),
-            if (errors[selected])
-              MaterialBanner(
-                content: const Text('The store could not load.'),
-                actions: [
-                  TextButton(
-                    onPressed: () => controllers[selected].reload(),
-                    child: const Text('Retry'),
+  Widget photo(Product p, double height) {
+    final placeholder = SizedBox(
+      height: height,
+      child: const Center(child: Icon(Icons.weekend_outlined, size: 48)),
+    );
+    if (p.image == null) return placeholder;
+    return Image.network(
+      p.image!,
+      height: height,
+      width: double.infinity,
+      fit: BoxFit.contain,
+      errorBuilder: (_, _, _) => placeholder,
+    );
+  }
+
+  void showProduct(BuildContext context, Product p) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => Scaffold(
+          appBar: AppBar(title: Text(stores[p.store])),
+          body: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              photo(p, 240),
+              Text(title(p), style: Theme.of(context).textTheme.headlineMedium),
+              Text('${p.sku}  ?  ${p.size}'),
+              const SizedBox(height: 12),
+              Text(arabic ? p.arabicDetails : p.details),
+              if (p.hasModel) ...[
+                const SizedBox(
+                  height: 280,
+                  child: ModelViewer(
+                    src: 'assets/london-10_14_3.glb',
+                    alt: 'London sofa prototype',
+                    cameraControls: true,
                   ),
-                ],
+                ),
+                if (arUrl.isNotEmpty)
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      final uri = Uri.tryParse(arUrl);
+                      if (uri != null && uri.scheme == 'https') {
+                        await launchUrl(
+                          uri,
+                          mode: LaunchMode.externalApplication,
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.view_in_ar),
+                    label: Text(tr('����� �� ���', 'View in your room')),
+                  ),
+              ],
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                onPressed: () {
+                  changeQuantity(p, 1);
+                  Navigator.of(context).pop();
+                },
+                icon: const Icon(Icons.shopping_bag_outlined),
+                label: Text(tr('��� ���', 'Add to bag')),
               ),
-            Expanded(
-              child: IndexedStack(
-                index: selected,
-                children: [
-                  for (final controller in controllers)
-                    WebViewWidget(controller: controller),
-                ],
-              ),
-            ),
-          ],
-        ),
-        bottomNavigationBar: NavigationBar(
-          selectedIndex: selected,
-          onDestinationSelected: (index) => setState(() => selected = index),
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.weekend_outlined),
-              label: 'The Factory',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.chair_outlined),
-              label: 'CityW',
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
+
+  Widget productCard(BuildContext context, Product p) => Card(
+    clipBehavior: Clip.antiAlias,
+    child: InkWell(
+      onTap: () => showProduct(context, p),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          photo(p, 165),
+          ListTile(
+            title: Text(title(p)),
+            subtitle: Text(p.size),
+            trailing: IconButton(
+              tooltip: tr('������', 'Favourites'),
+              onPressed: () => toggleFavourite(p),
+              icon: Icon(
+                favourites.contains(p.sku)
+                    ? Icons.favorite
+                    : Icons.favorite_border,
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+
+  Widget content(BuildContext context) {
+    final selected = catalogue.where((p) => p.store == store);
+    final q = query.trim().toLowerCase();
+    final shown = tab == 1
+        ? catalogue.where((p) => favourites.contains(p.sku))
+        : selected.where(
+            (p) => '${p.name} ${p.arabic} ${p.sku}'.toLowerCase().contains(q),
+          );
+    final items = selected.where((p) => cart.containsKey(p.sku));
+    return ListView(
+      padding: const EdgeInsets.all(18),
+      children: [
+        if (tab != 1)
+          Wrap(
+            spacing: 8,
+            children: [
+              for (var i = 0; i < stores.length; i++)
+                ChoiceChip(
+                  label: Text(stores[i]),
+                  selected: store == i,
+                  onSelected: (_) => setState(() => store = i),
+                ),
+            ],
+          ),
+        if (tab == 0) ...[
+          Text(
+            tr('���� ���', 'Furniture for your home'),
+            style: Theme.of(context).textTheme.headlineMedium,
+          ),
+          Text(tr('袟��� �����', 'Demo catalogue')),
+          const SizedBox(height: 12),
+          TextFormField(
+            initialValue: query,
+            onChanged: (value) => setState(() => query = value),
+            decoration: InputDecoration(
+              prefixIcon: const Icon(Icons.search),
+              labelText: tr('���� ��韫� �� �����', 'Search by name or SKU'),
+            ),
+          ),
+        ],
+        const SizedBox(height: 12),
+        if (tab == 2) ...[
+          if (items.isEmpty) Text(tr('��� ���', 'Your bag is empty')),
+          for (final p in items)
+            ListTile(
+              title: Text(title(p)),
+              subtitle: Text(p.sku),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    onPressed: () => changeQuantity(p, -1),
+                    icon: const Icon(Icons.remove),
+                  ),
+                  Text('${cart[p.sku]}'),
+                  IconButton(
+                    onPressed: () => changeQuantity(p, 1),
+                    icon: const Icon(Icons.add),
+                  ),
+                ],
+              ),
+            ),
+          if (items.isNotEmpty)
+            Text(
+              tr(
+                '���� ���� �� ��� ��� ���頟�.',
+                'Checkout is pending store integration.',
+              ),
+            ),
+        ] else ...[
+          if (shown.isEmpty) Text(tr('� �� �뢤��', 'No products found')),
+          for (final p in shown) productCard(context, p),
+        ],
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) => MaterialApp(
+    locale: Locale(arabic ? 'ar' : 'en'),
+    supportedLocales: const [Locale('ar'), Locale('en')],
+    localizationsDelegates: GlobalMaterialLocalizations.delegates,
+    title: 'Almutlaq Furniture',
+    theme: ThemeData(
+      colorSchemeSeed: const Color(0xff365348),
+      scaffoldBackgroundColor: const Color(0xfff8f6f1),
+    ),
+    home: Builder(
+      builder: (context) => Scaffold(
+        appBar: AppBar(
+          title: Text(tr('������ �隣��', 'Almutlaq Furniture')),
+          actions: [
+            TextButton(
+              onPressed: () {
+                setState(() => arabic = !arabic);
+                widget.preferences.setBool('arabic', arabic);
+              },
+              child: Text(arabic ? 'EN' : '㩠�'),
+            ),
+          ],
+        ),
+        body: content(context),
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: tab,
+          onDestinationSelected: (i) => setState(() => tab = i),
+          destinations: [
+            NavigationDestination(
+              icon: const Icon(Icons.storefront),
+              label: tr('��ꢟ��', 'Stores'),
+            ),
+            NavigationDestination(
+              icon: const Icon(Icons.favorite_border),
+              label: tr('������', 'Favourites'),
+            ),
+            NavigationDestination(
+              icon: const Icon(Icons.shopping_bag_outlined),
+              label: tr('���', 'Bag'),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
