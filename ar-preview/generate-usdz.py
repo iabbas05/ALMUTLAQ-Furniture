@@ -28,11 +28,12 @@ for index, node in enumerate(model["nodes"]):
     points = read_accessor(mesh["attributes"]["POSITION"], "<3f")
     normals = read_accessor(mesh["attributes"]["NORMAL"], "<3f")
     triangles = read_accessor(mesh["indices"], "<3H")
-    color = model["materials"][mesh["material"]]["pbrMetallicRoughness"]["baseColorFactor"][:3]
+    material = mesh["material"]
+    color = model["materials"][material]["pbrMetallicRoughness"]["baseColorFactor"][:3]
     assert len(points) == len(normals)
     assert max(i for face in triangles for i in face) < len(points)
     parts.append(f'''
-    def Mesh "Part{index}" {{
+    def Mesh "Part{index}" (prepend apiSchemas = ["MaterialBindingAPI"]) {{
         uniform token subdivisionScheme = "none"
         int[] faceVertexCounts = [{numbers(3 for _ in triangles)}]
         int[] faceVertexIndices = [{numbers(i for face in triangles for i in face)}]
@@ -41,7 +42,25 @@ for index, node in enumerate(model["nodes"]):
         double3 xformOp:translate = ({numbers(node["translation"])})
         uniform token[] xformOpOrder = ["xformOp:translate"]
         color3f[] primvars:displayColor = [({numbers(color)})]
+        rel material:binding = </London/Materials/Material{material}>
     }}''')
+
+# AR Quick Look shades from bound materials, so mirror each glTF material.
+looks = []
+for index, entry in enumerate(model["materials"]):
+    pbr = entry["pbrMetallicRoughness"]
+    looks.append(f'''
+        def Material "Material{index}" {{
+            token outputs:surface.connect = </London/Materials/Material{index}/Surface.outputs:surface>
+            def Shader "Surface" {{
+                uniform token info:id = "UsdPreviewSurface"
+                color3f inputs:diffuseColor = ({numbers(pbr["baseColorFactor"][:3])})
+                float inputs:roughness = {pbr["roughnessFactor"]}
+                float inputs:metallic = {pbr["metallicFactor"]}
+                token outputs:surface
+            }}
+        }}''')
+parts.append('    def Scope "Materials" {' + "".join(looks) + '\n    }')
 stage = '#usda 1.0\n(defaultPrim = "London"\n metersPerUnit = 1\n upAxis = "Y")\n'
 stage += 'def Xform "London" {\n' + '\n'.join(parts) + '\n}\n'
 entry = zipfile.ZipInfo("London.usda")

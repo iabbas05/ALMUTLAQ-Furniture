@@ -1,0 +1,68 @@
+name: Build AR preview page
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/ar-preview.yml'
+      - 'ar-preview/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/ar-preview.yml'
+      - 'ar-preview/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ar-preview-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Generate GLB and USDZ
+        run: |
+          python3 ar-preview/generate-model.py
+          python3 ar-preview/generate-usdz.py
+          test -s ar-preview/london-10_14_3.glb
+          test -s ar-preview/london-10_14_3.usdz
+      - name: Check the USDZ opens at the published size
+        run: |
+          pip install --quiet usd-core
+          python3 ar-preview/check-usdz.py
+      - name: Assemble site
+        run: |
+          mkdir site
+          cp ar-preview/index.html ar-preview/london-10_14_3.glb ar-preview/london-10_14_3.usdz site/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ar-preview-site
+          path: site
+          if-no-files-found: error
+      - if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  # Needs GitHub Pages enabled once: Settings > Pages > Source: GitHub Actions.
+  deploy:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
