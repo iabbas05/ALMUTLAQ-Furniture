@@ -1,7 +1,7 @@
 name: london_showroom
 description: Native furniture storefront prototype for The Factory and CityW.
 publish_to: none
-version: 0.4.0+4
+version: 0.5.0+5
 environment:
   sdk: ^3.8.0
 dependencies:
@@ -13,8 +13,19 @@ dependencies:
   model_viewer_plus: 1.10.0
   shared_preferences: ^2.5.3
   url_launcher: ^6.3.1
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
 flutter:
   uses-material-design: true
+  fonts:
+    - family: NotoSansArabic
+      fonts:
+        - asset: assets/NotoSansArabic.ttf
   assets:
     - assets/london-10_14_3.glb
+    - assets/NotoSansArabic-OFL.txt
+
+
+
 
