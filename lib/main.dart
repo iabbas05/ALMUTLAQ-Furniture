@@ -433,7 +433,7 @@ class _FurnitureAppState extends State<FurnitureApp> {
               label: tr('السلة', 'Bag'),
             ),
             NavigationDestination(
-              icon: const Icon(Icons.floorplan),
+              icon: const Icon(Icons.architecture),
               label: tr('الغرفة', 'Room'),
             ),
           ],
