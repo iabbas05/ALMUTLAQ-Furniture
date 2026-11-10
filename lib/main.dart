@@ -6,64 +6,15 @@ import 'package:model_viewer_plus/model_viewer_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'catalogue.dart';
+import 'room_planner.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(FurnitureApp(await SharedPreferences.getInstance()));
 }
 
-const stores = ['The Factory', 'CityW'];
 const arUrl = String.fromEnvironment('SHOWROOM_AR_URL');
-
-class Product {
-  const Product(
-    this.sku,
-    this.store,
-    this.name,
-    this.arabic,
-    this.size,
-    this.details,
-    this.arabicDetails, {
-    this.image,
-    this.hasModel = false,
-  });
-  final String sku, name, arabic, size, details, arabicDetails;
-  final int store;
-  final String? image;
-  final bool hasModel;
-}
-
-const catalogue = [
-  Product(
-    '10_14_3',
-    0,
-    'London three-seater',
-    '�렡 ��� �韣�',
-    '210 ? 103 ? 100 cm',
-    'White upholstered sofa with three seats.',
-    '�렡 ����� �뤑�� ��韣� ���.',
-    image: 'https://thefactoryfurniture.com/wp-content/uploads/2026/11/10-14-00003-1.jpg',
-    hasModel: true,
-  ),
-  Product(
-    '6_14_5',
-    0,
-    'London chair',
-    '詫� ���',
-    '84 ? 95 ? 94 cm',
-    'White upholstered single seat.',
-    '詫� ���� �뤑� ���� ퟥ�.',
-    image: 'https://thefactoryfurniture.com/wp-content/uploads/2026/11/06-14-00005-1.jpg',
-  ),
-  Product(
-    '23_88_1',
-    1,
-    'Warm Beige three-seater',
-    '�렡 �� ��� �韣�',
-    '230 ? 101 ? 78 cm',
-    'Woven fabric with a solid wood frame.',
-    '�꟬ ���� �� �៩ �� �馬� ���.',
-  ),
-];
 
 class FurnitureApp extends StatefulWidget {
   const FurnitureApp(this.preferences, {super.key});
@@ -78,6 +29,41 @@ class _FurnitureAppState extends State<FurnitureApp> {
   late Map<String, int> cart;
   int store = 0, tab = 0;
   String query = '';
+  String? category;
+  int visibleCount = 24;
+  final client = CatalogueClient();
+  final live = <int, List<Product>>{};
+  final loading = <int>{};
+  final failed = <int>{};
+
+  Iterable<Product> products(int index) =>
+      live[index] ?? sampleCatalogue.where((p) => p.store == index);
+
+  Iterable<Product> get allProducts =>
+      List.generate(stores.length, products).expand((items) => items);
+
+  Future<void> loadCatalogue(int index) async {
+    if (loading.contains(index)) return;
+    setState(() {
+      loading.add(index);
+      failed.remove(index);
+    });
+    try {
+      final products = await client.fetch(index);
+      if (!mounted) return;
+      setState(() {
+        live[index] = products;
+        if (store == index &&
+            !products.any((p) => p.categories.contains(category))) {
+          category = null;
+        }
+      });
+    } catch (_) {
+      if (mounted) setState(() => failed.add(index));
+    } finally {
+      if (mounted) setState(() => loading.remove(index));
+    }
+  }
 
   @override
   void initState() {
@@ -87,10 +73,20 @@ class _FurnitureAppState extends State<FurnitureApp> {
     final saved =
         jsonDecode(widget.preferences.getString('cart') ?? '{}') as Map;
     cart = {
-      for (final p in catalogue)
-        if (saved[p.sku] is int && (saved[p.sku] as int) > 0)
-          p.sku: saved[p.sku] as int,
+      for (final entry in saved.entries)
+        if (entry.key is String &&
+            entry.value is int &&
+            (entry.value as int) > 0)
+          entry.key as String: entry.value as int,
     };
+    for (final p in sampleCatalogue) {
+      if (favourites.remove(p.sku)) favourites.add(p.key);
+      final quantity = cart.remove(p.sku);
+      if (quantity != null) cart.putIfAbsent(p.key, () => quantity);
+    }
+    for (var i = 0; i < stores.length; i++) {
+      loadCatalogue(i);
+    }
   }
 
   String tr(String ar, String en) => arabic ? ar : en;
@@ -98,18 +94,18 @@ class _FurnitureAppState extends State<FurnitureApp> {
 
   void toggleFavourite(Product p) {
     setState(() {
-      if (!favourites.remove(p.sku)) favourites.add(p.sku);
+      if (!favourites.remove(p.key)) favourites.add(p.key);
     });
     widget.preferences.setStringList('favourites', favourites.toList());
   }
 
   void changeQuantity(Product p, int delta) {
     setState(() {
-      final next = (cart[p.sku] ?? 0) + delta;
+      final next = (cart[p.key] ?? 0) + delta;
       if (next <= 0) {
-        cart.remove(p.sku);
+        cart.remove(p.key);
       } else {
-        cart[p.sku] = next;
+        cart[p.key] = next;
       }
     });
     widget.preferences.setString('cart', jsonEncode(cart));
@@ -138,11 +134,45 @@ class _FurnitureAppState extends State<FurnitureApp> {
           body: ListView(
             padding: const EdgeInsets.all(20),
             children: [
-              photo(p, 240),
+              if (p.gallery.length > 1)
+                SizedBox(
+                  height: 240,
+                  child: PageView(
+                    children: [
+                      for (final url in p.gallery)
+                        Image.network(
+                          url,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, _, _) => photo(p, 240),
+                        ),
+                    ],
+                  ),
+                )
+              else
+                photo(p, 240),
               Text(title(p), style: Theme.of(context).textTheme.headlineMedium),
-              Text('${p.sku}  ?  ${p.size}'),
+              Text('${p.sku}  •  ${p.size}'),
               const SizedBox(height: 12),
+              if (p.price.isNotEmpty)
+                Text(p.price, style: Theme.of(context).textTheme.titleLarge),
+              if (p.inStock != null)
+                Text(
+                  p.inStock!
+                      ? tr('متوفر', 'In stock')
+                      : tr('غير متوفر', 'Out of stock'),
+                ),
               Text(arabic ? p.arabicDetails : p.details),
+              for (final attribute in p.attributes) Text(attribute),
+              if (p.link != null)
+                TextButton(
+                  onPressed: () => launchUrl(
+                    Uri.parse(p.link!),
+                    mode: LaunchMode.externalApplication,
+                  ),
+                  child: Text(
+                    tr('الصفحة الرسمية للمنتج', 'Official product page'),
+                  ),
+                ),
               if (p.hasModel) ...[
                 const SizedBox(
                   height: 280,
@@ -164,17 +194,19 @@ class _FurnitureAppState extends State<FurnitureApp> {
                       }
                     },
                     icon: const Icon(Icons.view_in_ar),
-                    label: Text(tr('����� �� ���', 'View in your room')),
+                    label: Text(tr('جرّبها في غرفتك', 'View in your room')),
                   ),
               ],
               const SizedBox(height: 12),
               FilledButton.icon(
-                onPressed: () {
-                  changeQuantity(p, 1);
-                  Navigator.of(context).pop();
-                },
+                onPressed: p.inStock == false
+                    ? null
+                    : () {
+                        changeQuantity(p, 1);
+                        Navigator.of(context).pop();
+                      },
                 icon: const Icon(Icons.shopping_bag_outlined),
-                label: Text(tr('��� ���', 'Add to bag')),
+                label: Text(tr('أضف للسلة', 'Add to bag')),
               ),
             ],
           ),
@@ -192,13 +224,13 @@ class _FurnitureAppState extends State<FurnitureApp> {
         children: [
           photo(p, 165),
           ListTile(
-            title: Text(title(p)),
-            subtitle: Text(p.size),
+            title: Text(title(p), maxLines: 2, overflow: TextOverflow.ellipsis),
+            subtitle: Text(p.price.isEmpty ? p.size : p.price),
             trailing: IconButton(
-              tooltip: tr('������', 'Favourites'),
+              tooltip: tr('المفضلة', 'Favourites'),
               onPressed: () => toggleFavourite(p),
               icon: Icon(
-                favourites.contains(p.sku)
+                favourites.contains(p.key)
                     ? Icons.favorite
                     : Icons.favorite_border,
               ),
@@ -210,14 +242,18 @@ class _FurnitureAppState extends State<FurnitureApp> {
   );
 
   Widget content(BuildContext context) {
-    final selected = catalogue.where((p) => p.store == store);
+    final selected = products(store);
     final q = query.trim().toLowerCase();
     final shown = tab == 1
-        ? catalogue.where((p) => favourites.contains(p.sku))
+        ? allProducts.where((p) => favourites.contains(p.key))
         : selected.where(
-            (p) => '${p.name} ${p.arabic} ${p.sku}'.toLowerCase().contains(q),
+            (p) =>
+                (category == null || p.categories.contains(category)) &&
+                '${p.name} ${p.arabic} ${p.sku}'.toLowerCase().contains(q),
           );
-    final items = selected.where((p) => cart.containsKey(p.sku));
+    final items = selected.where((p) => cart.containsKey(p.key));
+    final departments = selected.expand((p) => p.categories).toSet().toList()
+      ..sort();
     return ListView(
       padding: const EdgeInsets.all(18),
       children: [
@@ -229,29 +265,74 @@ class _FurnitureAppState extends State<FurnitureApp> {
                 ChoiceChip(
                   label: Text(stores[i]),
                   selected: store == i,
-                  onSelected: (_) => setState(() => store = i),
+                  onSelected: (_) => setState(() {
+                    store = i;
+                    category = null;
+                    visibleCount = 24;
+                  }),
                 ),
             ],
           ),
         if (tab == 0) ...[
           Text(
-            tr('���� ���', 'Furniture for your home'),
+            tr('أثاث بيتك', 'Furniture for your home'),
             style: Theme.of(context).textTheme.headlineMedium,
           ),
-          Text(tr('袟��� �����', 'Demo catalogue')),
+          if (loading.contains(store)) const LinearProgressIndicator(),
+          if (failed.contains(store))
+            ListTile(
+              title: Text(
+                tr('تعذّر تحديث الكتالوج', 'Catalogue update unavailable'),
+              ),
+              subtitle: Text(
+                tr(
+                  'تُعرض المنتجات المتاحة في التطبيق',
+                  'Showing available local products',
+                ),
+              ),
+              trailing: IconButton(
+                onPressed: () => loadCatalogue(store),
+                icon: const Icon(Icons.refresh),
+              ),
+            ),
+          if (!live.containsKey(store))
+            Text(tr('كتالوج تجريبي', 'Demo catalogue')),
+          if (departments.isNotEmpty)
+            DropdownButton<String>(
+              isExpanded: true,
+              value: category ?? '',
+              items: [
+                DropdownMenuItem(
+                  value: '',
+                  child: Text(tr('كل الأقسام', 'All departments')),
+                ),
+                for (final department in departments)
+                  DropdownMenuItem(
+                    value: department,
+                    child: Text(department, overflow: TextOverflow.ellipsis),
+                  ),
+              ],
+              onChanged: (value) => setState(() {
+                category = value == '' ? null : value;
+                visibleCount = 24;
+              }),
+            ),
           const SizedBox(height: 12),
           TextFormField(
             initialValue: query,
-            onChanged: (value) => setState(() => query = value),
+            onChanged: (value) => setState(() {
+              query = value;
+              visibleCount = 24;
+            }),
             decoration: InputDecoration(
               prefixIcon: const Icon(Icons.search),
-              labelText: tr('���� ��韫� �� �����', 'Search by name or SKU'),
+              labelText: tr('ابحث بالاسم أو الكود', 'Search by name or SKU'),
             ),
           ),
         ],
         const SizedBox(height: 12),
         if (tab == 2) ...[
-          if (items.isEmpty) Text(tr('��� ���', 'Your bag is empty')),
+          if (items.isEmpty) Text(tr('السلة فاضية', 'Your bag is empty')),
           for (final p in items)
             ListTile(
               title: Text(title(p)),
@@ -263,7 +344,7 @@ class _FurnitureAppState extends State<FurnitureApp> {
                     onPressed: () => changeQuantity(p, -1),
                     icon: const Icon(Icons.remove),
                   ),
-                  Text('${cart[p.sku]}'),
+                  Text('${cart[p.key]}'),
                   IconButton(
                     onPressed: () => changeQuantity(p, 1),
                     icon: const Icon(Icons.add),
@@ -274,13 +355,34 @@ class _FurnitureAppState extends State<FurnitureApp> {
           if (items.isNotEmpty)
             Text(
               tr(
-                '���� ���� �� ��� ��� ���頟�.',
+                'الدفع يتفعّل بعد ربط نظام الطلبات.',
                 'Checkout is pending store integration.',
               ),
             ),
         ] else ...[
-          if (shown.isEmpty) Text(tr('� �� �뢤��', 'No products found')),
-          for (final p in shown) productCard(context, p),
+          if (shown.isEmpty) Text(tr('ما في منتجات', 'No products found')),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final columns = constraints.maxWidth < 340
+                  ? 1
+                  : (constraints.maxWidth / 185).floor().clamp(2, 5).toInt();
+              return GridView.count(
+                crossAxisCount: columns,
+                mainAxisExtent: 260,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                children: [
+                  for (final p in shown.take(visibleCount))
+                    productCard(context, p),
+                ],
+              );
+            },
+          ),
+          if (shown.length > visibleCount)
+            OutlinedButton(
+              onPressed: () => setState(() => visibleCount += 24),
+              child: Text(tr('عرض منتجات أكثر', 'Show more products')),
+            ),
         ],
       ],
     );
@@ -294,38 +396,46 @@ class _FurnitureAppState extends State<FurnitureApp> {
     title: 'Almutlaq Furniture',
     theme: ThemeData(
       colorSchemeSeed: const Color(0xff365348),
+      fontFamily: arabic ? 'NotoSansArabic' : null,
       scaffoldBackgroundColor: const Color(0xfff8f6f1),
     ),
     home: Builder(
       builder: (context) => Scaffold(
         appBar: AppBar(
-          title: Text(tr('������ �隣��', 'Almutlaq Furniture')),
+          title: Text(tr('المطلق للأثاث', 'Almutlaq Furniture')),
           actions: [
             TextButton(
               onPressed: () {
                 setState(() => arabic = !arabic);
                 widget.preferences.setBool('arabic', arabic);
               },
-              child: Text(arabic ? 'EN' : '㩠�'),
+              child: Text(arabic ? 'EN' : 'عربي'),
             ),
           ],
         ),
-        body: content(context),
+        body: IndexedStack(
+          index: tab == 3 ? 1 : 0,
+          children: [content(context), RoomPlanner(widget.preferences, arabic)],
+        ),
         bottomNavigationBar: NavigationBar(
           selectedIndex: tab,
           onDestinationSelected: (i) => setState(() => tab = i),
           destinations: [
             NavigationDestination(
               icon: const Icon(Icons.storefront),
-              label: tr('��ꢟ��', 'Stores'),
+              label: tr('المتاجر', 'Stores'),
             ),
             NavigationDestination(
               icon: const Icon(Icons.favorite_border),
-              label: tr('������', 'Favourites'),
+              label: tr('المفضلة', 'Favourites'),
             ),
             NavigationDestination(
               icon: const Icon(Icons.shopping_bag_outlined),
-              label: tr('���', 'Bag'),
+              label: tr('السلة', 'Bag'),
+            ),
+            NavigationDestination(
+              icon: const Icon(Icons.architecture),
+              label: tr('الغرفة', 'Room'),
             ),
           ],
         ),
