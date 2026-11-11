@@ -1,5 +1,16 @@
 # Handoff log
 
+## 2026-11-11 · Codex · Windows build continuation
+
+- Verified checkpoint 0a0b641: mobile workflow 42989277944 passed Windows launcher persistence, protocol/browser, Flutter tests, Android APK and unsigned iOS IPA. AR workflow 42989277745 also passed. Confirmed both mobile artifacts exist.
+- Restored the exact source checkpoint locally through the GitHub connector because shell GitHub DNS resolution failed. Regenerated both demo models successfully.
+- Fixed Build-Headset.ps1 to launch the Windows Unity GUI executable synchronously using Start-Process -Wait -PassThru -WindowStyle Hidden and inspect its ExitCode. The earlier call-operator invocation returned before Unity finished in this Windows session.
+- Focused PowerShell checks passed for waiting/hidden flags, argument quoting with spaces and rejecting nonzero Unity exit status. Full new CI pending.
+- Actual Unity 6000.6.8f1 test attempt started, but the latest log stops at '[Licensing::Module] Licensing is not yet initialized.' No Unity test results or headset APK produced. Do not count this as a compilation/test pass.
+- ADB could not start its daemon from this execution session. USB pairing and physical device testing remain blocked and untested.
+- Next: resolve Unity licence initialization and local ADB startup, run real Unity edit-mode tests and APK build, then the physical acceptance checklist. No change to main or Claude branches.
+
+
 ## 2026-11-11 · Codex · Claude review follow-up
 
 - A: updated BUILD.md, model-source note in AGENTS.md, and synchronized the complete corrected Claude history from 8cfbd83. Preserved the approved decisions from this conversation. Integrate source ancestry using a merge commit on the Codex branch, without force pushing an active branch or merging main.
