@@ -69,12 +69,12 @@ namespace Almutlaq.Showroom
                     next.Add(root);
                 }
             }
-            catch { Destroy(stage); throw; }
+            catch { Release(stage); throw; }
             var old = sceneRoot;
             sceneRoot = stage; furniture = next; Current = state.Copy();
             Selected = Mathf.Clamp(Selected, 0, Mathf.Max(0, next.Count - 1));
             stage.SetActive(true);
-            if (old != null) { old.SetActive(false); Destroy(old); }
+            if (old != null) { old.SetActive(false); Release(old); }
             Highlight();
         }
 
@@ -177,9 +177,14 @@ namespace Almutlaq.Showroom
             foreach (var model in Models.Values) model.Dispose();
             foreach (var finish in finishes)
             {
-                if (finish.mainTexture != null) Destroy(finish.mainTexture);
-                Destroy(finish);
+                if (finish.mainTexture != null) Release(finish.mainTexture);
+                Release(finish);
             }
+        }
+        private static void Release(UnityEngine.Object value)
+        {
+            if (Application.isPlaying) UnityEngine.Object.Destroy(value);
+            else UnityEngine.Object.DestroyImmediate(value);
         }
     }
 }

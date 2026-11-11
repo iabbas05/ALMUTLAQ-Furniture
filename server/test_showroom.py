@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import tempfile
 import threading
+import time
 import unittest
 from urllib.error import HTTPError
 from urllib.request import Request, build_opener, ProxyHandler, HTTPCookieProcessor
@@ -118,6 +119,32 @@ class StoreTests(unittest.TestCase):
         self.store.save_customer(dict(name="TEST CUSTOMER", phone="٠٠٠٠٠٠٠٠", consent=True))
         self.assertEqual(len(self.store.customers("00000000")), 1)
 
+    def test_retention_purges_only_expired_rows_and_persists_policy(self):
+        old = self.store.save_customer(dict(name="TEST OLD", phone="00000000", consent=True))
+        fresh = self.store.save_customer(dict(name="TEST FRESH", phone="00000001", consent=True))
+        self.store.db.execute("UPDATE customers SET saved_at=? WHERE id=?", (time.time()-31*86400, old["id"]))
+        self.store.db.commit()
+        self.store.close()
+        self.store = ShowroomStore(self.temp.name)
+        self.assertEqual([r['id'] for r in self.store.customers('TEST')], [fresh['id']])
+        self.store.privacy(7)
+        self.store.close()
+        self.store = ShowroomStore(self.temp.name)
+        self.assertEqual(self.store.privacy()['retentionDays'], 7)
+        for invalid in (True, 0, 366, '30'):
+            with self.assertRaises(ValidationError):
+                self.store.privacy(invalid)
+
+    def test_export_is_one_record_and_contains_saved_room(self):
+        a = self.store.save_customer(dict(name="TEST A", phone="00000000", consent=True))
+        self.store.save_customer(dict(name="TEST B", phone="00000001", consent=True))
+        exported = self.store.export_customer(a['id'])
+        self.assertEqual(exported['customer']['name'], 'TEST A')
+        self.assertEqual(exported['customer']['document']['room']['width'], 4)
+        self.assertNotIn('TEST B', json.dumps(exported))
+        with self.assertRaises(ValidationError):
+            self.store.export_customer('missing')
+
     def test_glb_import_and_reject_stretched_dimensions(self):
         blob = (ROOT.parent / "assets/london-10_14_3.glb").read_bytes()
         mesh = decode_glb(blob, dict(width=2.1, depth=1.03, height=1))
@@ -211,6 +238,12 @@ class HttpTests(unittest.TestCase):
         with self.assertRaises(HTTPError) as rejected:
             outsider.open(request)
         self.assertEqual(rejected.exception.code, 403)
+        for path, body in [('/api/privacy', {'retentionDays': 1}), ('/api/export-customer', {'id': 'missing'})]:
+            request = Request(self.url+path, data=json.dumps(body).encode(),
+                headers={"Authorization": "Bearer "+token, "Content-Type": "application/json"})
+            with self.assertRaises(HTTPError) as rejected:
+                outsider.open(request)
+            self.assertEqual(rejected.exception.code, 403)
 
 if __name__ == "__main__":
     unittest.main()

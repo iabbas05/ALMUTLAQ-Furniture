@@ -56,7 +56,7 @@ This repository is public. Never commit client names, email addresses, phone num
 ## Code notes
 
 - Save every file as UTF-8. Arabic text must survive a round trip.
-- Keep generated 3D files reproducible from the scripts in `ar-preview/`.
+- Keep generated 3D files reproducible from `tools/generate_demo_models.py`, with USDZ export under `ar-preview/`.
 - Measure models against the published dimensions in a test, as `test/room_planner_test.dart` does.
 
 ## Ownership for this work session
@@ -65,3 +65,10 @@ This repository is public. Never commit client names, email addresses, phone num
 - Codex's new generator is tools/generate_demo_models.py. Do not overwrite the website generator on another agent's branch. Agree the shared model outputs through HANDOFF.md.
 - Use synthetic TEST records in tests. Device acknowledgements only mean the specified scene revision was actually applied.
 - The local service is loopback-only. It is a demo, not a production account/permission system.
+
+## Coordination update, 2026-11-11
+- Claude's ordered review tasks are in PR #4 comments 6790747625 and 6790882987.
+- Resolve shared-document differences on the Codex branch without rewriting Claude's history or main. The current conversation explicitly confirms PICO 4 Ultra, Bahrain, Flutter and customer saves. Those decisions supersede the older open questions in PR #2.
+- Customer retention defaults to 30 days in this demo, configurable from 1 to 365 days. Expired records are removed on service start or policy update. Single-record export is staff-only. Real showroom policy remains a company deployment dependency.
+- Web AR uses the build-time URL, selected SKU and language. Never substitute another product for an unsupported SKU.
+- The Unity headset dependency is pinned to the official PICO SDK because Abbas already specified PICO 4 Ultra in this conversation. Real Unity/PICO compilation and tests remain mandatory, not implied by mobile CI.

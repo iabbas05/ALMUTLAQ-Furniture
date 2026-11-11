@@ -140,9 +140,14 @@ namespace Almutlaq.Showroom
         }
         public void Dispose()
         {
-            foreach (var mesh in meshes) if (mesh != null) UnityEngine.Object.Destroy(mesh);
-            foreach (var material in materials) if (material != null) UnityEngine.Object.Destroy(material);
+            foreach (var mesh in meshes) if (mesh != null) Release(mesh);
+            foreach (var material in materials) if (material != null) Release(material);
             meshes.Clear(); materials.Clear();
+        }
+        private static void Release(UnityEngine.Object value)
+        {
+            if (Application.isPlaying) UnityEngine.Object.Destroy(value);
+            else UnityEngine.Object.DestroyImmediate(value);
         }
     }
 }

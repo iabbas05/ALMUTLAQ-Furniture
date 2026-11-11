@@ -55,7 +55,10 @@
 <button type="submit" class="primary">حفظ التجربة</button><p class="muted small">الحفظ على كمبيوتر المعرض. الاسم والرقم ما ينرسلون للنظارة.</p></form>
 </section>
 <section id="customers" class="tab" hidden><div class="section-heading"><h2>التجارب المحفوظة</h2>
-<label>ابحث بالاسم أو الرقم<input id="customer-search" type="search"></label></div><div id="customer-list"></div></section>
+<label>ابحث بالاسم أو الرقم<input id="customer-search" type="search"></label></div>
+<form id="privacy-form" class="panel"><label>مدة حفظ بيانات العميل بالأيام<input id="retention-days" type="number" min="1" max="365" value="30" required></label>
+<p class="muted small">تنحذف التجارب الأقدم من هالمدة عند تشغيل الخدمة وعند تغيير المدة. التصدير ينزّل ملف فيه بيانات العميل، احتفظ فيه بشكل آمن. الحذف ما يمسح الملفات المصدّرة أو النسخ الاحتياطية.</p>
+<button type="submit">حفظ مدة الاحتفاظ</button></form><div id="customer-list"></div></section>
 <section id="catalogue" class="tab" hidden><p class="eyebrow">كتالوج التجربة المحلي</p><h2>إدارة المنتجات والمجسمات</h2>
 <p class="muted">هذي إدارة كتالوج التجربة. ربط تعديل المنتجات بالموقع والمخزون يحتاج واجهات الشركة.</p>
 <div class="catalogue-grid"><form id="category-form" class="panel"><h3>تصنيف</h3><label>رمز التصنيف<input id="category-id" pattern="[a-z0-9_-]{1,40}" required dir="ltr"></label>

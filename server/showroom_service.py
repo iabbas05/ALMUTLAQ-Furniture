@@ -24,7 +24,7 @@ class ConflictError(ValueError):
     pass
 
 class ShowroomStore:
-    def __init__(self, directory):
+    def __init__(self, directory, retention_days=None):
         self.directory = Path(directory)
         self.directory.mkdir(parents=True, exist_ok=True)
         self.lock = threading.RLock()
@@ -41,6 +41,15 @@ class ShowroomStore:
           CREATE TABLE IF NOT EXISTS categories (id TEXT PRIMARY KEY, name TEXT NOT NULL);
           INSERT OR IGNORE INTO categories VALUES ('seating', 'الكنب والكراسي');
         """)
+        saved_policy = self.db.execute("SELECT value FROM settings WHERE key='retention_days'").fetchone()
+        days = retention_days if retention_days is not None else (int(saved_policy["value"]) if saved_policy else 30)
+        if type(days) is not int or not 1 <= days <= 365:
+            self.db.close()
+            raise ValidationError("Retention must be 1 to 365 days")
+        self.retention_days = days
+        self.db.execute("INSERT OR REPLACE INTO settings VALUES ('retention_days',?)", (str(days),))
+        self.db.execute("DELETE FROM customers WHERE saved_at < ?", (time.time() - days * 86400,))
+        self.db.commit()
         self.products = self._products()
         raw = self.db.execute("SELECT value FROM settings WHERE key='snapshot'").fetchone()
         if raw:
@@ -255,6 +264,26 @@ class ShowroomStore:
                 "OR instr(phone,?)>0 ORDER BY saved_at DESC LIMIT 50", (query, query)).fetchall()
             return [dict(row) for row in rows]
 
+    def privacy(self, days=None):
+        with self.lock:
+            if days is not None:
+                if type(days) is not int or not 1 <= days <= 365:
+                    raise ValidationError("Retention must be 1 to 365 days")
+                self.retention_days = days
+                self.db.execute("INSERT OR REPLACE INTO settings VALUES ('retention_days',?)", (str(days),))
+                self.db.execute("DELETE FROM customers WHERE saved_at < ?", (time.time() - days * 86400,))
+                self.db.commit()
+            return dict(retentionDays=self.retention_days, localOnly=True)
+
+    def export_customer(self, key):
+        with self.lock:
+            row = self.db.execute("SELECT * FROM customers WHERE id=?", (key,)).fetchone()
+            if not row:
+                raise ValidationError("Saved design not found")
+            value = dict(row)
+            value["document"] = json.loads(value["document"])
+            return {"exportVersion": 1, "customer": value, "exportedAt": time.time()}
+
     def restore_customer(self, key, expected):
         with self.lock:
             row = self.db.execute("SELECT document FROM customers WHERE id=?", (key,)).fetchone()
@@ -380,6 +409,8 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/customers":
             query = parse_qs(url.query).get("q", [""])[0][:120]
             return self.send({"customers": self.server.store.customers(query)})
+        if path == "/api/privacy":
+            return self.send(self.server.store.privacy())
         return self.send({"error": "Not found"}, 404)
 
     def do_POST(self):
@@ -414,6 +445,12 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(self.server.store.save_product(data))
             if path == "/api/categories":
                 return self.send(self.server.store.save_category(data))
+            if path == "/api/privacy":
+                if "retentionDays" not in data:
+                    raise ValidationError("Retention days required")
+                return self.send(self.server.store.privacy(data["retentionDays"]))
+            if path == "/api/export-customer":
+                return self.send(self.server.store.export_customer(data.get("id")))
             if path == "/api/publish":
                 return self.send(self.server.store.publish(data))
             if path == "/api/delete-customer":
@@ -444,10 +481,13 @@ def main():
     parser = argparse.ArgumentParser(description="Local staff panel and headset link")
     parser.add_argument("--port", type=int, default=18766)
     parser.add_argument("--data-dir", type=Path, default=ROOT / "data")
+    parser.add_argument("--retention-days", type=int, help="Customer record retention, 1 to 365 days. Default: stored policy or 30.")
     args = parser.parse_args()
     if not 1024 <= args.port <= 65535:
         parser.error("Use a port between 1024 and 65535")
-    store = ShowroomStore(args.data_dir)
+    if args.retention_days is not None and not 1 <= args.retention_days <= 365:
+        parser.error("Retention must be 1 to 365 days")
+    store = ShowroomStore(args.data_dir, retention_days=args.retention_days)
     try:
         with ShowroomServer(("127.0.0.1", args.port), store) as server:
             print(f"Staff panel: http://127.0.0.1:{args.port}", flush=True)

@@ -1,4 +1,4 @@
-param([string]$Adb, [string]$Device, [string]$Apk, [int]$Port = 18766, [switch]$PanelOnly)
+param([string]$Adb, [string]$Device, [string]$Apk, [int]$Port = 18766, [switch]$PanelOnly, [switch]$NoBrowser, [string]$DataDirectory)
 $ErrorActionPreference = 'Stop'
 if ($Port -lt 1024 -or $Port -gt 65535) { throw 'Choose a port between 1024 and 65535.' }
 $root = $PSScriptRoot
@@ -16,10 +16,11 @@ function Health {
 $health = Health
 if (-not $health) {
     $service = Join-Path $root 'server\showroom_service.py'
-    $data = Join-Path $root 'server\data'
+    $data = if ($DataDirectory) { $DataDirectory } else { Join-Path $root 'server\data' }
     $logs = Join-Path $root 'builds'
     New-Item -ItemType Directory -Force $logs | Out-Null
     $process = Start-Process -FilePath $python.Source -WorkingDirectory $root -ArgumentList @(('"{0}"' -f $service), '--port', "$Port", '--data-dir', ('"{0}"' -f $data)) -PassThru -RedirectStandardOutput (Join-Path $logs 'service.out.log') -RedirectStandardError (Join-Path $logs 'service.err.log')
+    Set-Content -LiteralPath (Join-Path $logs "service-$Port.pid") -Value $process.Id
     for ($attempt = 0; $attempt -lt 30; $attempt++) {
         Start-Sleep -Milliseconds 300
         $health = Health
@@ -30,7 +31,7 @@ if (-not $health) {
 if (-not $health -or $health.application -ne 'almutlaq-showroom' -or $health.protocol -ne 2) {
     throw 'The service is unavailable or another application uses this port. Close the old service or choose -Port 18767.'
 }
-if ($PanelOnly) { Start-Process $url; Write-Host "Staff panel: $url"; return }
+if ($PanelOnly) { if (-not $NoBrowser) { Start-Process $url }; Write-Host "Staff panel: $url"; return }
 if (-not $Adb) {
     $found = Get-Command adb -ErrorAction SilentlyContinue
     if ($found) { $Adb = $found.Source }
@@ -70,6 +71,6 @@ $activity = (& $Adb -s $Device shell cmd package resolve-activity --brief $packa
 if ($activity -notmatch '/') { throw 'Cannot find the headset launch activity.' }
 & $Adb -s $Device shell am start -n $activity --es showroom_pair_code $pair.code
 if ($LASTEXITCODE) { throw 'Headset launch failed.' }
-Start-Process $url
+if (-not $NoBrowser) { Start-Process $url }
 Write-Host "Staff panel: $url"
 Write-Host 'Change room width from 4 to 5 m. The panel confirms only after the headset applies it.'

@@ -13,9 +13,17 @@ Future<void> font() async {
   final loader = FontLoader('NotoSansArabic');
   loader.addFont(rootBundle.load('assets/NotoSansArabic.ttf'));
   await loader.load();
+  final icons = FontLoader('MaterialIcons');
+  icons.addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'));
+  await icons.load();
 }
 
 Future<void> screenshot(WidgetTester tester, GlobalKey key, String name) async {
+  await tester.runAsync(() async {
+    final context = tester.element(find.byType(MaterialApp));
+    await precacheImage(const AssetImage('assets/london-sofa.jpg'), context);
+    await precacheImage(const AssetImage('assets/london-chair.jpg'), context);
+  });
   await tester.pumpAndSettle();
   final boundary =
       key.currentContext!.findRenderObject()! as RenderRepaintBoundary;

@@ -76,6 +76,7 @@ class MeasuredRoomPreview {
           const normal=[u[1]*w[2]-u[2]*w[1],u[2]*w[0]-u[0]*w[2],u[0]*w[1]-u[1]*w[0]],len=Math.hypot(...normal);
           // Runtime winding uses Unity's clockwise convention. Shade with the outward normal.
           if(!len)continue;
+          if(normal[0]*sn*ce+normal[2]*cs*ce+normal[1]*se>=0)continue;
           const light=.72+.28*Math.max(0,(-normal[1]+.4*normal[0]+.25*normal[2])/len);
           const color='rgb('+part.color.slice(0,3).map(v=>Math.round(Math.pow(v,1/2.2)*255*light)).join(',')+')';
           face(points,color);

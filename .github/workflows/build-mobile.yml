@@ -3,10 +3,10 @@ name: Build Almutlaq mobile apps
 on:
   push:
     branches: [main]
-    paths: ['.github/workflows/build-mobile.yml', 'lib/**', 'test/**', 'pubspec.yaml', 'tools/**', 'native/**', 'scripts/**', 'server/**', 'unity/**']
+    paths: ['.github/workflows/build-mobile.yml', 'lib/**', 'test/**', 'pubspec.yaml', 'tools/**', 'native/**', 'scripts/**', 'server/**', 'unity/**', '*.ps1', 'qa/**', 'ar-preview/**']
   pull_request:
     branches: [main]
-    paths: ['.github/workflows/build-mobile.yml', 'lib/**', 'test/**', 'pubspec.yaml', 'tools/**', 'native/**', 'scripts/**', 'server/**', 'unity/**']
+    paths: ['.github/workflows/build-mobile.yml', 'lib/**', 'test/**', 'pubspec.yaml', 'tools/**', 'native/**', 'scripts/**', 'server/**', 'unity/**', '*.ps1', 'qa/**', 'ar-preview/**']
   workflow_dispatch:
     inputs:
       ar_url:
@@ -21,6 +21,17 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  windows-launcher:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check PowerShell scripts and repeat local startup without losing designs
+        shell: powershell
+        run: ./scripts/test_launcher.ps1
+
   protocol:
     runs-on: ubuntu-latest
     steps:
@@ -89,8 +100,8 @@ jobs:
           curl --fail --silent --show-error --location --retry 3 "$font_base/NotoSansArabic%5Bwdth%2Cwght%5D.ttf" --output assets/NotoSansArabic.ttf
           curl --fail --silent --show-error --location --retry 3 "$font_base/OFL.txt" --output assets/NotoSansArabic-OFL.txt
           test -s assets/NotoSansArabic.ttf
-          python3 scripts/fetch_demo_photos.py
-      - run: dart format lib/product_ar.dart
+          python3 scripts/fetch_demo_photos.py --required
+      - run: dart format lib test
       - run: flutter analyze lib test
       - run: flutter test
       - uses: actions/upload-artifact@v4
@@ -132,8 +143,8 @@ jobs:
           curl --fail --silent --show-error --location --retry 3 "$font_base/NotoSansArabic%5Bwdth%2Cwght%5D.ttf" --output assets/NotoSansArabic.ttf
           curl --fail --silent --show-error --location --retry 3 "$font_base/OFL.txt" --output assets/NotoSansArabic-OFL.txt
           test -s assets/NotoSansArabic.ttf
-          python3 scripts/fetch_demo_photos.py
-      - run: dart format lib/product_ar.dart
+          python3 scripts/fetch_demo_photos.py --required
+      - run: dart format lib test
       - run: flutter analyze lib test
       - name: Build and package unsigned IPA
         run: |

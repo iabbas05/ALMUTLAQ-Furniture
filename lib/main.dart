@@ -201,7 +201,7 @@ class _FurnitureAppState extends State<FurnitureApp> {
               else
                 photo(p, 240),
               Text(title(p), style: Theme.of(context).textTheme.headlineMedium),
-              Text('${p.sku}  •  ${p.size}'),
+              Text('${p.sku}  •  ${p.size}', textDirection: TextDirection.ltr),
               const SizedBox(height: 12),
               if (p.price.isNotEmpty)
                 Text(p.price, style: Theme.of(context).textTheme.titleLarge),
@@ -340,6 +340,7 @@ class _FurnitureAppState extends State<FurnitureApp> {
                 const SizedBox(height: 4),
                 Text(
                   p.price.isEmpty ? p.size : p.price,
+                  textDirection: TextDirection.ltr,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodySmall,
@@ -675,6 +676,7 @@ class _FurnitureAppState extends State<FurnitureApp> {
 
   @override
   Widget build(BuildContext context) => MaterialApp(
+    debugShowCheckedModeBanner: false,
     locale: Locale(arabic ? 'ar' : 'en'),
     supportedLocales: const [Locale('ar'), Locale('en')],
     localizationsDelegates: GlobalMaterialLocalizations.delegates,

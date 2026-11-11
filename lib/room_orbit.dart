@@ -219,10 +219,11 @@ class _OrbitPainter extends CustomPainter {
     }
 
     double depth(Point3 p) => (p.x * s + p.y * c) * up + p.z * e;
-    void draw(List<Point3> points, Color color) => canvas.drawPath(
-      Path()..addPolygon(points.map(screen).toList(), true),
-      Paint()..color = color,
-    );
+    void draw(List<Point3> points, Color color) {
+      final path = Path()..addPolygon(points.map(screen).toList(), true);
+      // Adjacent triangle antialiasing exposes the background as false mesh seams.
+      canvas.drawPath(path, Paint()..color = color..isAntiAlias = false);
+    }
     draw([
       point(0, 0, 0),
       point(w, 0, 0),

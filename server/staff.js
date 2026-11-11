@@ -141,13 +141,19 @@ function renderCatalogue(){
   }));modelStatus();
 }
 async function customers(){
+  const policy=await api('/api/privacy');$('retention-days').value=policy.retentionDays;
   const value=await api('/api/customers?q='+encodeURIComponent($('customer-search').value));
   $('customer-list').replaceChildren(...value.customers.map(c=>{
     const row=document.createElement('article');row.className='customer-row';
     const label=document.createElement('div'), name=document.createElement('p'), phone=document.createElement('p');
     name.textContent=c.name;phone.textContent=c.phone;phone.dir='ltr';label.append(name,phone);
     const actions=document.createElement('div');actions.className='actions';
-    actions.append(button('فتح التجربة',async()=>{
+    actions.append(button('تصدير',async()=>{
+      const value=await api('/api/export-customer',{id:c.id});
+      const url=URL.createObjectURL(new Blob([JSON.stringify(value,null,2)],{type:'application/json'}));
+      const link=document.createElement('a');link.href=url;link.download='customer-design-'+c.id+'.json';
+      link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    }),button('فتح التجربة',async()=>{
       state=await api('/api/restore-customer',{id:c.id,expectedRevision:state.revision});render();switchTab('room');status(state);notify('انفتحت التجربة، بانتظار تأكيد النظارة');
     }),button('حذف',async()=>{
       if(!confirm('تحذف بيانات هالعميل والتصميم المحفوظ؟'))return;
@@ -186,6 +192,10 @@ $('save-customer').addEventListener('submit',run(async()=>{
   $('save-customer').reset();notify('انحفظت التجربة على هالكمبيوتر');
 }));
 $('customer-search').addEventListener('input',()=>customers().catch(e=>notify(e.message,true)));
+$('privacy-form').addEventListener('submit',run(async()=>{
+  if(!confirm('بتنحذف التجارب الأقدم من المدة الجديدة. تبي تحفظها؟'))return;
+  await api('/api/privacy',{retentionDays:Number($('retention-days').value)});await customers();notify('انحفظت مدة الاحتفاظ');
+}));
 $('category-form').addEventListener('submit',run(async()=>{
   await api('/api/categories',{id:$('category-id').value,name:$('category-name').value});await refresh();notify('انحفظ التصنيف');
 }));

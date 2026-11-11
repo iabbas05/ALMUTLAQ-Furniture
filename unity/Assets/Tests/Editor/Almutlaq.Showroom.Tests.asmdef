@@ -1,0 +1,6 @@
+{
+  "name": "Almutlaq.Showroom.Tests",
+  "references": ["Almutlaq.Showroom"],
+  "includePlatforms": ["Editor"],
+  "optionalUnityReferences": ["TestAssemblies"]
+}

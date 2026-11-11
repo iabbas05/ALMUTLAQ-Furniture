@@ -1,5 +1,6 @@
 """Optional offline copies of the two company-provided demo product photos."""
 import json
+import sys
 from pathlib import Path
 from urllib.request import Request, urlopen
 
@@ -25,3 +26,5 @@ for name, url in photos.items():
         results.append(dict(file=name, copied=False, source=url, error=type(error).__name__))
 print(json.dumps(results, indent=2))
 (ROOT / "photo-fetch-status.json").write_text(json.dumps(results), encoding="utf-8")
+if '--required' in sys.argv and not all(row['copied'] for row in results):
+    raise SystemExit('Demo product photos are required for this build. Review photo-fetch-status.json.')

@@ -1,9 +1,21 @@
 # Handoff log
 
+## 2026-11-11 · Codex · Claude review follow-up
+
+- A: updated BUILD.md, model-source note in AGENTS.md, and synchronized the complete corrected Claude history from 8cfbd83. Preserved the approved decisions from this conversation. Integrate source ancestry using a merge commit on the Codex branch, without force pushing an active branch or merging main.
+- B: added the one-command USB launcher, detailed DEMO_RUNBOOK.md and physical DEVICE_TESTS.md. A Windows CI job now parses both PowerShell scripts and tests repeat startup preserving a TEST design. Its result is pending; USB/device operations remain untested.
+- C: web handoff now sends SKU plus ar/en language, with tests. Kept SHOWROOM_AR_URL configurable and no host URL before deployment.
+- D: PICO 4 Ultra was explicitly confirmed in this conversation, so the headset project uses the pinned official PICO SDK. Added Unity edit-mode rejected-revision/opening tests. Build-Headset.ps1 now requires these edit-mode tests to pass before creating the APK. These tests are written, not run in the real Editor.
+- E: 30-day default configurable retention, startup/policy purge and staff-only single-record export added. 20 Python tests pass locally, including retention, export and device access denial.
+- CI 42987910845 on 9b6ffd7 passed protocol/browser, Flutter analysis/tests, Android APK and unsigned IPA. Both artifact types exist. This does not establish device acceptance.
+- Downloaded and inspected actual Flutter/staff screenshots from that run. Corrected test icon-font loading/photo precache, left-to-right dimension strings and false triangle seams. The visual follow-up is pending a new CI run.
+- The first CI 42987597570 failed due to Playwright's wait_for_function conflicting with the page CSP. Replaced page-evaluated polling with controlled DevTools calls, preserving the application's CSP. The next browser run passed.
+
+
 ## 2026-11-11 · Codex · integrated build checkpoint 0.8.1+9
 
 Written in this checkpoint:
-- Integrate Claude's AR page, USDZ exporter, USD geometry validation and AR site workflow from claude/ar-preview-web (f15d008) into the Codex branch. The page selects sofa/chair by SKU and rejects unknown products. No changes to Claude's branch or main.
+- Integrate Claude's AR page, USDZ exporter, USD geometry validation and AR site workflow from claude/ar-preview-web (b2acdfa; supersedes f15d008) into the Codex branch. The page selects sofa/chair by SKU and rejects unknown products. No changes to Claude's branch or main.
 - Bundle both USDZ files in the mobile build. Add iOS native AR Quick Look via ProductARPlugin with content scaling disabled. Android camera AR still needs a published HTTPS preview URL. RoomPlan remains the separate LiDAR scan bridge.
 - Fix ModelAsset.Load's static/instance compiler error. Add a pinned PICO Integration SDK dependency, generated Unity scene and ARM64 development APK build entry point, Build-Headset.ps1.
 - Add Start-LinkedDemo.ps1: generates models, starts the local service, discovers an authorized USB device, installs an available APK, verifies ADB reverse, obtains a one-time pairing code and launches the headset. No fixed serial or Downloads dependency.
@@ -66,7 +78,70 @@ Coordination for Claude:
 ---
 
 
+
+## Shared Claude history, synchronized from 8cfbd83
+
+
 Newest entry first. Each agent adds an entry at the end of every work session, using the template at the bottom.
+
+---
+
+## 2026-11-11 · Claude · task list for Codex posted
+
+Abbas asked Claude to coordinate. The ordered task list for Codex (groups A to E, plus items on hold) is in the PR #4 comments, dated 2026-11-11. Codex: start with group A, and log each finished task here. Claude reviews each push.
+
+---
+
+## 2026-11-11 · Claude · check-in after Codex's push (PR #3 at `b2acdfa`, review of PR #4)
+
+**Seen**
+- Codex pushed `codex/unified-room-v08` (PR #4, `bf84ddc`, Actions passing) with the chair model, undo/redo, named designs, the local staff service, RoomPlan bridge and Unity sources. The "not found on any pushed branch" list in my first entry below is now resolved.
+
+**Done**
+- PR #3 restacked from PR #1 onto PR #4 (one force-push of my own branch; previous head `f15d008`).
+- Web AR page now uses `tools/generate_demo_models.py` as the single model source, serves sofa and chair by `?sku=`, and rejects unsupported codes. `ar-preview/generate-model.py` removed.
+- Review comment posted on PR #4.
+
+**Tested**
+- Model pipeline locally: sofa 14 meshes 2.10 × 1.00 × 1.03 m, chair 10 meshes 0.84 × 0.94 × 0.95 m.
+- `server/test_showroom.py`: 16 of 16 pass on Linux, HTTP tests included.
+- Page rendered in headless Chrome (Arabic, English, chair, unsupported code).
+- Untested on device: AR Quick Look, Scene Viewer, WebXR, and the rendered look of the models.
+
+**Not done / known problems**
+- Flutter, Swift and Unity sources in PR #4 not reviewed line by line.
+- `HANDOFF.md` and `AGENTS.md` differ between PR #2 and PR #4 and will conflict. Suggested merge order: #2, then #1, then #4 (rebased), then #3.
+- PR #4's `AGENTS.md` lists decisions as approved by Abbas (Flutter in scope, PICO 4 Ultra, Unity on the phone). Abbas to confirm.
+
+**Next**
+- Abbas: confirm those decisions, merge in the order above, enable GitHub Pages, test the page on a phone.
+- Codex: items 1 to 4 in the PR #4 review comment.
+- Claude: re-test PR #3 after PR #4 changes; deeper review of the Flutter room link and the service on request.
+
+---
+
+## 2026-11-11 · Claude · branch `claude/ar-preview-web` (PR #3)
+
+**Done**
+- Branched from `native-live-catalogue` at `d48e80c`; PR #3 is stacked on PR #1.
+- `generate-usdz.py`: meshes bound to UsdPreviewSurface materials.
+- New `check-usdz.py`: asserts size, floor contact and material bindings.
+- `index.html`: Arabic and English, broken characters fixed, WebXR mode added.
+- New workflow `ar-preview.yml`: builds GLB and USDZ, uploads the site, deploys to GitHub Pages on `main`.
+- Fixes open problems 1 and 2 below once merged and Pages is enabled.
+
+**Tested**
+- Scripts run locally; USDZ opens in usd-core, 14 meshes, 2.10 × 1.00 × 1.03 m.
+- Page text rendered in headless Chrome, both languages.
+- Untested on device: AR Quick Look, Scene Viewer, WebXR in a headset browser.
+
+**Not done / known problems**
+- No chair page: waiting for Codex's chair model. Codex, when you push it, keep the same script pattern (`generate-model.py` writing `<name>-<code>.glb`) so the page and workflow can take a second product.
+- GitHub Pages must be enabled once by Abbas.
+
+**Next**
+- Codex: push the chair model and the other unpushed work.
+- Claude: add the chair page and a product switcher after that; review PR #1.
 
 ---
 
@@ -78,7 +153,7 @@ Newest entry first. Each agent adds an entry at the end of every work session, u
 
 **State of `native-live-catalogue` as pushed (commit `d48e80c`)**
 - Fixed: Arabic text encoding; Noto Sans Arabic font added.
-- Improved: London sofa model, 17 parts with rounded edges; dimensions checked by a test.
+- Improved: London sofa model, 14 parts with rounded edges; dimensions checked by a test.
 - Added: 2D room plan, 3D orbit view, rotation, keeping items inside the room.
 - Chair: dimensions listed, no 3D model yet.
 
@@ -92,9 +167,9 @@ Codex: please push these so they can be reviewed.
 **Known problems still open**
 1. `ar-preview/index.html` requests `london-10_14_3.usdz`, but the workflow never generates or publishes it, so iPhone AR fails from the web page.
 2. `ar-preview` is not published anywhere; the in-app AR button only appears when a URL is passed at build time.
-3. The iOS build produces an unsigned IPA, and the latest `main` commit suggests the build fails. The `ios-build.log` artifact from Actions is needed.
+3. The iOS build produces an unsigned IPA, so it cannot be installed on an iPhone without signing. (Actions passes on `d48e80c`, so the build itself works.)
 4. `BUILD.md` says catalogue, prices and checkout come from the live websites; check it still matches the code.
-5. Untested here: Flutter version `3.47.8` in the workflow, and whether `model_viewer_plus` needs extra Android settings.
+5. Untested on device: whether `model_viewer_plus` needs extra Android settings.
 
 **Next**
 - Abbas: answer the open questions in `AGENTS.md`.
