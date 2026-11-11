@@ -1,5 +1,13 @@
 # Handoff log
 
+## 2026-11-11 - Codex - desktop runbook publication approved
+
+- Abbas explicitly approved the expanded docs/DEMO_RUNBOOK.md and HANDOFF.md upload, and authorized continued work without repeated approval questions.
+- Build safeguards published at 8139f1d. Windows launch/build-script checks, protocol/HTTP/browser checks, Flutter analysis/tests and AR packaging passed. Mobile packaging workflow 43003769899 still running at this checkpoint.
+- Added exact desktop Unity licence/package/build and USB debugging/ADB steps, with the pairing-code launch-extra limitation and Android HTTPS-hosting dependency requested in Claude review 6792129818.
+- This documentation upload resolves the prior approval block. Unity/PICO compilation and physical device acceptance remain pending because the automated Windows session crashed during licensing IPC/Burst/Mono socket startup. Full phone Unity embedding and commercial integrations remain open.
+
+
 ## 2026-11-11 · Codex · publication authorized
 
 - Abbas explicitly authorized publishing all five build/test/handoff changes to this Codex branch after automatic review requested confirmation. New CI pending at upload. Seven build-script scenarios and fifteen storage tests passed locally. Unity/PICO compilation and device testing remain blocked by the observed local IPC/socket crash.

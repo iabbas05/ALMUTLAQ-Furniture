@@ -1,5 +1,33 @@
 # USB showroom demo
 
+## First device run: actions at the Windows desktop
+
+The automated session crashed in Unity licensing IPC/Burst and Mono socket startup, and could not start the ADB daemon. This does not prove that the installed licence is invalid or that the headset is disconnected. Complete this first run from your normal Windows desktop.
+
+1. Open Unity Hub, sign in if requested, and check Licenses for an activated licence suitable for your organisation. Open this repository's `unity/` project with Editor 6000.6.8f1. Let the pinned packages finish importing. Resolve Console errors first, then close the project so batch mode can open it.
+2. Open Windows PowerShell in the repository root and run:
+
+   ```powershell
+   powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Build-Headset.ps1
+   ```
+
+   Expected: at least one Unity edit-mode test passes, then a fresh `builds/ShowroomVR-Linked.apk` is produced. Read `builds/unity-tests.log` and `builds/unity-tests.xml` if the test phase fails, or `builds/unity-build.log` if the Android build fails. An old APK is preserved on failure and does not count as a new build.
+3. Power on the PICO 4 Ultra, enable USB debugging in developer settings, connect a data-capable USB cable and accept the USB debugging prompt inside the headset. Run:
+
+   ```powershell
+   $picoAdb = Join-Path $env:ProgramFiles 'Unity\Hub\Editor\6000.6.8f1\Editor\Data\PlaybackEngines\AndroidPlayer\SDK\platform-tools\adb.exe'
+   & $picoAdb start-server
+   & $picoAdb devices -l
+   powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Start-LinkedDemo.ps1 -Adb $picoAdb
+   ```
+
+   Expected: one device listed as `device`, successful APK installation, a staff panel address and the headset app opening. `unauthorized` requires accepting the prompt inside the headset. A daemon failure must be resolved before pairing. With multiple devices pass `-Device SERIAL` to the launcher.
+4. Change room width from 4 to 5 metres and wait for the headset to display that revision. Record the observed result in `docs/DEVICE_TESTS.md`. Mobile CI and simulated acknowledgements do not complete this device check.
+
+The one-time pairing code is sent as an Android launch extra and may be visible in device diagnostic logs. This USB demo mechanism is not a production sign-in system. Avoid sharing raw device logs while a pairing code is valid.
+
+Android phone camera AR also needs a deployed HTTPS AR page. Do not infer hosting from a successful AR packaging workflow. After GitHub Pages is enabled and the deployed address verified, record the address in HANDOFF.md and provide it as the mobile workflow's `ar_url` input.
+
 This runbook targets Windows and PICO 4 Ultra. It is a test build, not a production deployment.
 
 1. Install Unity 6000.6.8f1 with Android Build Support, SDK/NDK/OpenJDK, Git and Python 3. Activate the applicable Unity licence. Expected: Unity opens the project under `unity/` and resolves the pinned PICO package. If package import fails, read the Unity Console before building.
@@ -14,3 +42,4 @@ This runbook targets Windows and PICO 4 Ultra. It is a test build, not a product
 10. Unplug USB. Expected: the visible headset scene is retained and the panel stops reporting a recent device reply. Reconnect and rerun the launcher to recreate reverse and restart pairing if required. Do not reinstall or clear application data as the first diagnostic step.
 
 The launcher also supports `-PanelOnly` to run the staff UI without a headset. Browser tests use simulated ACKs. Real measurement, tracking and performance evidence belongs in DEVICE_TESTS.md.
+
