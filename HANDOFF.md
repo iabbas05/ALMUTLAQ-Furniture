@@ -1,5 +1,10 @@
 # Handoff log
 
+## 2026-11-11 - Codex - assembly-name gate correction
+
+- Editor review found the run-tree gate used GetFileNameWithoutExtension on an assembly display name. For a name without .dll this would strip .Tests and reject the intended run. The gate now accepts only the exact showroom assembly name with or without .dll. Full Editor execution remains unverified; no APK success claimed. New CI pending.
+
+
 ## 2026-11-11 - Codex - completion audit and precise remaining steps
 
 - Corrected the scope of earlier time estimates: elapsed preparation/source-check time was not a complete build. No fixed full-product completion estimate is established by these results.

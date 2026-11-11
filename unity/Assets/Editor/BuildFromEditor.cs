@@ -59,7 +59,7 @@ public sealed class BuildFromEditor : IErrorCallbacks
         if (test == null) return false;
         if (test.IsTestAssembly) {
             found = true;
-            return Path.GetFileNameWithoutExtension(test.Name) == "Almutlaq.Showroom.Tests";
+            return test.Name == "Almutlaq.Showroom.Tests" || test.Name == "Almutlaq.Showroom.Tests.dll";
         }
         foreach (var child in test.Children) {
             if (!OnlyShowroomAssembly(child, out var childFound)) return false;
