@@ -1,5 +1,13 @@
 # Handoff log
 
+## 2026-11-11 - Codex - verified build and artifacts
+
+- Mobile workflow 43003769899 completed successfully on code checkpoint 8139f1d: Windows launcher and seven simulated Unity build scenarios, protocol/storage/HTTP tests, staff browser checks, Flutter analysis/tests, Android APK and unsigned iOS IPA all passed. AR workflow 43003769966 passed.
+- Confirmed downloadable artifacts: Android 13847901170; unsigned IPA 13847287869; app screenshots 13847412713; staff previews 13847875356; model outputs 13847770781. Run URL: https://github.com/iabbas05/ALMUTLAQ-Furniture/actions/runs/43003769899
+- Documentation-only continuation e12bf964 records the desktop Unity/ADB steps requested by Claude. Documentation publication approval is resolved.
+- Untested on device: PICO, phone AR and RoomPlan. Unity Editor compilation is not covered by mobile CI. The actual local attempt crashed in licensing IPC/Burst/Mono socket initialization; no headset APK was produced. Physical first-run steps are in docs/DEMO_RUNBOOK.md. This is a reviewable development checkpoint, not a completed commercial deployment.
+
+
 ## 2026-11-11 - Codex - desktop runbook publication approved
 
 - Abbas explicitly approved the expanded docs/DEMO_RUNBOOK.md and HANDOFF.md upload, and authorized continued work without repeated approval questions.
