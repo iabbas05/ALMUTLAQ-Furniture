@@ -6,11 +6,13 @@ on:
     paths:
       - '.github/workflows/ar-preview.yml'
       - 'ar-preview/**'
+      - 'tools/generate_demo_models.py'
   pull_request:
     branches: [main]
     paths:
       - '.github/workflows/ar-preview.yml'
       - 'ar-preview/**'
+      - 'tools/generate_demo_models.py'
   workflow_dispatch:
 
 permissions:
@@ -28,20 +30,18 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Generate GLB and USDZ
+      - name: Generate GLB and USDZ for every demo product
         run: |
-          python3 ar-preview/generate-model.py
-          python3 ar-preview/generate-usdz.py
-          test -s ar-preview/london-10_14_3.glb
-          test -s ar-preview/london-10_14_3.usdz
-      - name: Check the USDZ opens at the published size
+          python3 tools/generate_demo_models.py --output generated-models
+          python3 ar-preview/generate-usdz.py generated-models
+      - name: Check each USDZ opens at the published size
         run: |
           pip install --quiet usd-core
-          python3 ar-preview/check-usdz.py
+          python3 ar-preview/check-usdz.py generated-models
       - name: Assemble site
         run: |
           mkdir site
-          cp ar-preview/index.html ar-preview/london-10_14_3.glb ar-preview/london-10_14_3.usdz site/
+          cp ar-preview/index.html generated-models/*.glb generated-models/*.usdz site/
       - uses: actions/upload-artifact@v4
         with:
           name: ar-preview-site
