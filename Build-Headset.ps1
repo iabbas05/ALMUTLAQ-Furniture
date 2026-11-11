@@ -28,7 +28,9 @@ Get-ChildItem (Join-Path $root 'generated-models\*.mesh.json') | ForEach-Object 
 }
 $builds = Join-Path $root 'builds'
 New-Item -ItemType Directory -Force $builds | Out-Null
-$env:SHOWROOM_APK_OUTPUT = Join-Path $builds 'ShowroomVR-Linked.apk'
+$finalApk = Join-Path $builds 'ShowroomVR-Linked.apk'
+$env:SHOWROOM_APK_OUTPUT = Join-Path $builds 'ShowroomVR-Linked.pending.apk'
+if (Test-Path -LiteralPath $env:SHOWROOM_APK_OUTPUT) { Remove-Item -LiteralPath $env:SHOWROOM_APK_OUTPUT }
 $log = Join-Path $builds 'unity-build.log'
 # Unity must be closed for this project before batch mode opens it.
 $results = Join-Path $builds 'unity-tests.xml'
@@ -37,7 +39,11 @@ if (Test-Path -LiteralPath $results) { Remove-Item -LiteralPath $results }
 Invoke-UnityBatch -UnityArguments @('-batchmode', '-projectPath', (Join-Path $root 'unity'), '-runTests', '-testPlatform', 'EditMode', '-testResults', $results, '-logFile', $testLog)
 if (-not (Test-Path -LiteralPath $results)) { throw "Unity tests did not finish. Read $testLog" }
 [xml]$testReport = Get-Content -LiteralPath $results -Raw
-if ($testReport.'test-run'.result -ne 'Passed') { throw "Unity tests failed. Read $results" }
+if ($testReport.'test-run'.result -ne 'Passed' -or [int]$testReport.'test-run'.passed -lt 1 -or
+    [int]$testReport.'test-run'.failed -ne 0) { throw "Unity tests failed or no tests passed. Read $results" }
 Invoke-UnityBatch -UnityArguments @('-batchmode', '-quit', '-buildTarget', 'Android', '-projectPath', (Join-Path $root 'unity'), '-executeMethod', 'BuildShowroom.Android', '-logFile', $log)
-if (-not (Test-Path -LiteralPath $env:SHOWROOM_APK_OUTPUT)) { throw "Build failed. Open $log" }
-Write-Host "Built: $env:SHOWROOM_APK_OUTPUT"
+if (-not (Test-Path -LiteralPath $env:SHOWROOM_APK_OUTPUT) -or
+    (Get-Item -LiteralPath $env:SHOWROOM_APK_OUTPUT).Length -eq 0) { throw "Build did not produce a new APK. Open $log" }
+Move-Item -LiteralPath $env:SHOWROOM_APK_OUTPUT -Destination $finalApk -Force
+Write-Host "Built: $finalApk"
+

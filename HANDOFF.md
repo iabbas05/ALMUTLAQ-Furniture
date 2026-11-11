@@ -1,17 +1,21 @@
 # Handoff log
 
-## 2026-11-11 · Codex · Windows build continuation
+## 2026-11-11 · Codex · publication authorized
 
-- Verified checkpoint 0a0b641: mobile workflow 42989277944 passed Windows launcher persistence, protocol/browser, Flutter tests, Android APK and unsigned iOS IPA. AR workflow 42989277745 also passed. Confirmed both mobile artifacts exist.
-- Restored the exact source checkpoint locally through the GitHub connector because shell GitHub DNS resolution failed. Regenerated both demo models successfully.
-- Fixed Build-Headset.ps1 to launch the Windows Unity GUI executable synchronously using Start-Process -Wait -PassThru -WindowStyle Hidden and inspect its ExitCode. The earlier call-operator invocation returned before Unity finished in this Windows session.
-- Focused PowerShell checks passed for waiting/hidden flags, argument quoting with spaces and rejecting nonzero Unity exit status. Full new CI pending.
-- Actual Unity 6000.6.8f1 test attempt started, but the latest log stops at '[Licensing::Module] Licensing is not yet initialized.' No Unity test results or headset APK produced. Do not count this as a compilation/test pass.
-- ADB could not start its daemon from this execution session. USB pairing and physical device testing remain blocked and untested.
-- Next: resolve Unity licence initialization and local ADB startup, run real Unity edit-mode tests and APK build, then the physical acceptance checklist. No change to main or Claude branches.
+- Abbas explicitly authorized publishing all five build/test/handoff changes to this Codex branch after automatic review requested confirmation. New CI pending at upload. Seven build-script scenarios and fifteen storage tests passed locally. Unity/PICO compilation and device testing remain blocked by the observed local IPC/socket crash.
 
 
-## 2026-11-11 · Codex · Claude review follow-up
+## 2026-11-11 � Codex � local build safeguards, publication blocked
+
+- Seven simulated Unity process/build scenarios pass in scripts/test_headset_build.ps1. Fifteen local StoreTests pass. PowerShell syntax checks pass.
+- Build-Headset.ps1 rejects missing/empty results and zero passed tests, produces a fresh pending APK and promotes it only on success, retaining the prior APK on failure. Staff service launch uses a hidden window. CI configuration includes the new build-script checks.
+- Mobile workflow 42994652687 and AR workflow 42994652671 succeeded on cb916b8. These new local changes are not published or verified in CI yet.
+- GitHub create_tree publication was rejected by automatic approval review, which flagged potential disclosure of internal content to an unverified external repository and requested explicit payload/destination authorization. No alternative publication route attempted.
+- Actual Unity launch crashed after licensing IPC and Burst named-pipe failures, in Mono socket IO/BuildReportRestService. ADB daemon startup is also blocked in this execution session. No headset APK or physical acceptance pass.
+- Next: authorize publication of the five changed build/test/handoff files to codex/unified-room-v08, run CI, then perform Unity/PICO acceptance in a desktop session with working licence and IPC. Full phone Unity embedding and commercial integrations remain open.
+
+
+## 2026-11-11 � Codex � Claude review follow-up
 
 - A: updated BUILD.md, model-source note in AGENTS.md, and synchronized the complete corrected Claude history from 8cfbd83. Preserved the approved decisions from this conversation. Integrate source ancestry using a merge commit on the Codex branch, without force pushing an active branch or merging main.
 - B: added the one-command USB launcher, detailed DEMO_RUNBOOK.md and physical DEVICE_TESTS.md. A Windows CI job now parses both PowerShell scripts and tests repeat startup preserving a TEST design. Its result is pending; USB/device operations remain untested.
@@ -23,7 +27,7 @@
 - The first CI 42987597570 failed due to Playwright's wait_for_function conflicting with the page CSP. Replaced page-evaluated polling with controlled DevTools calls, preserving the application's CSP. The next browser run passed.
 
 
-## 2026-11-11 · Codex · integrated build checkpoint 0.8.1+9
+## 2026-11-11 � Codex � integrated build checkpoint 0.8.1+9
 
 Written in this checkpoint:
 - Integrate Claude's AR page, USDZ exporter, USD geometry validation and AR site workflow from claude/ar-preview-web (b2acdfa; supersedes f15d008) into the Codex branch. The page selects sofa/chair by SKU and rejects unknown products. No changes to Claude's branch or main.
@@ -54,7 +58,7 @@ Next: inspect CI on this checkpoint, repair failures, update this entry with the
 ---
 
 
-## 2026-11-11 · Codex · branch codex/unified-room-v08 · review checkpoint
+## 2026-11-11 � Codex � branch codex/unified-room-v08 � review checkpoint
 
 Status: work in progress. This checkpoint is uploaded for review and is not a release-readiness claim.
 
@@ -67,7 +71,7 @@ Written and uploaded in this checkpoint:
 
 Validation at this checkpoint:
 - Dart formatter passed for the edited sources before this commit.
-- Generated GLB dimensions: sofa 2.10 × 1.03 × 1.00 m, chair 0.84 × 0.95 × 0.94 m. Geometry assertions pass.
+- Generated GLB dimensions: sofa 2.10 ? 1.03 ? 1.00 m, chair 0.84 ? 0.95 ? 0.94 m. Geometry assertions pass.
 - 11 local service/storage/model tests passed. 4 HTTP tests were blocked locally by Windows socket permissions (WinError 10013), not skipped in CI.
 - GitHub Actions for this checkpoint: pending. Flutter, iOS compilation and HTTP integration must pass before a deliverable is called built.
 - Untested on device: all new Flutter changes, RoomPlan and PICO.
@@ -97,13 +101,13 @@ Newest entry first. Each agent adds an entry at the end of every work session, u
 
 ---
 
-## 2026-11-11 · Claude · task list for Codex posted
+## 2026-11-11 � Claude � task list for Codex posted
 
 Abbas asked Claude to coordinate. The ordered task list for Codex (groups A to E, plus items on hold) is in the PR #4 comments, dated 2026-11-11. Codex: start with group A, and log each finished task here. Claude reviews each push.
 
 ---
 
-## 2026-11-11 · Claude · check-in after Codex's push (PR #3 at `b2acdfa`, review of PR #4)
+## 2026-11-11 � Claude � check-in after Codex's push (PR #3 at `b2acdfa`, review of PR #4)
 
 **Seen**
 - Codex pushed `codex/unified-room-v08` (PR #4, `bf84ddc`, Actions passing) with the chair model, undo/redo, named designs, the local staff service, RoomPlan bridge and Unity sources. The "not found on any pushed branch" list in my first entry below is now resolved.
@@ -114,7 +118,7 @@ Abbas asked Claude to coordinate. The ordered task list for Codex (groups A to E
 - Review comment posted on PR #4.
 
 **Tested**
-- Model pipeline locally: sofa 14 meshes 2.10 × 1.00 × 1.03 m, chair 10 meshes 0.84 × 0.94 × 0.95 m.
+- Model pipeline locally: sofa 14 meshes 2.10 ? 1.00 ? 1.03 m, chair 10 meshes 0.84 ? 0.94 ? 0.95 m.
 - `server/test_showroom.py`: 16 of 16 pass on Linux, HTTP tests included.
 - Page rendered in headless Chrome (Arabic, English, chair, unsupported code).
 - Untested on device: AR Quick Look, Scene Viewer, WebXR, and the rendered look of the models.
@@ -131,7 +135,7 @@ Abbas asked Claude to coordinate. The ordered task list for Codex (groups A to E
 
 ---
 
-## 2026-11-11 · Claude · branch `claude/ar-preview-web` (PR #3)
+## 2026-11-11 � Claude � branch `claude/ar-preview-web` (PR #3)
 
 **Done**
 - Branched from `native-live-catalogue` at `d48e80c`; PR #3 is stacked on PR #1.
@@ -142,7 +146,7 @@ Abbas asked Claude to coordinate. The ordered task list for Codex (groups A to E
 - Fixes open problems 1 and 2 below once merged and Pages is enabled.
 
 **Tested**
-- Scripts run locally; USDZ opens in usd-core, 14 meshes, 2.10 × 1.00 × 1.03 m.
+- Scripts run locally; USDZ opens in usd-core, 14 meshes, 2.10 ? 1.00 ? 1.03 m.
 - Page text rendered in headless Chrome, both languages.
 - Untested on device: AR Quick Look, Scene Viewer, WebXR in a headset browser.
 
@@ -156,7 +160,7 @@ Abbas asked Claude to coordinate. The ordered task list for Codex (groups A to E
 
 ---
 
-## 2026-11-11 · Claude · branch `claude/agent-handoff`
+## 2026-11-11 � Claude � branch `claude/agent-handoff`
 
 **Done**
 - Added `AGENTS.md` (shared rules), `CLAUDE.md` (points to it) and this log.
@@ -192,7 +196,7 @@ Codex: please push these so they can be reviewed.
 ## Template
 
 ```
-## YYYY-MM-DD · <agent> · branch `<branch>`
+## YYYY-MM-DD � <agent> � branch `<branch>`
 
 **Done**
 - 
@@ -206,3 +210,4 @@ Codex: please push these so they can be reviewed.
 **Next**
 - 
 ```
+

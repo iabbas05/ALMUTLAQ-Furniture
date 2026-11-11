@@ -19,7 +19,7 @@ if (-not $health) {
     $data = if ($DataDirectory) { $DataDirectory } else { Join-Path $root 'server\data' }
     $logs = Join-Path $root 'builds'
     New-Item -ItemType Directory -Force $logs | Out-Null
-    $process = Start-Process -FilePath $python.Source -WorkingDirectory $root -ArgumentList @(('"{0}"' -f $service), '--port', "$Port", '--data-dir', ('"{0}"' -f $data)) -PassThru -RedirectStandardOutput (Join-Path $logs 'service.out.log') -RedirectStandardError (Join-Path $logs 'service.err.log')
+    $process = Start-Process -FilePath $python.Source -WorkingDirectory $root -WindowStyle Hidden -ArgumentList @(('"{0}"' -f $service), '--port', "$Port", '--data-dir', ('"{0}"' -f $data)) -PassThru -RedirectStandardOutput (Join-Path $logs 'service.out.log') -RedirectStandardError (Join-Path $logs 'service.err.log')
     Set-Content -LiteralPath (Join-Path $logs "service-$Port.pid") -Value $process.Id
     for ($attempt = 0; $attempt -lt 30; $attempt++) {
         Start-Sleep -Milliseconds 300
@@ -74,3 +74,4 @@ if ($LASTEXITCODE) { throw 'Headset launch failed.' }
 if (-not $NoBrowser) { Start-Process $url }
 Write-Host "Staff panel: $url"
 Write-Host 'Change room width from 4 to 5 m. The panel confirms only after the headset applies it.'
+

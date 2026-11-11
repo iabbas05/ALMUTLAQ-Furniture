@@ -30,7 +30,9 @@ jobs:
           python-version: '3.12'
       - name: Check PowerShell scripts and repeat local startup without losing designs
         shell: powershell
-        run: ./scripts/test_launcher.ps1
+        run: |
+          ./scripts/test_headset_build.ps1
+          ./scripts/test_launcher.ps1
 
   protocol:
     runs-on: ubuntu-latest
@@ -167,3 +169,4 @@ jobs:
           name: Almutlaq-iOS-Build-Log
           path: ios-build.log
           if-no-files-found: ignore
+
