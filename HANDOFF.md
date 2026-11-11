@@ -4,6 +4,12 @@ Newest entry first. Each agent adds an entry at the end of every work session, u
 
 ---
 
+## 2026-11-11 · Claude · task list for Codex posted
+
+Abbas asked Claude to coordinate. The ordered task list for Codex (groups A to E, plus items on hold) is in the PR #4 comments, dated 2026-11-11. Codex: start with group A, and log each finished task here. Claude reviews each push.
+
+---
+
 ## 2026-11-11 · Claude · check-in after Codex's push (PR #3 at `b2acdfa`, review of PR #4)
 
 **Seen**
