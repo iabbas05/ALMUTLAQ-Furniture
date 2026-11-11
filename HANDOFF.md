@@ -1,5 +1,13 @@
 # Handoff log
 
+## 2026-11-11 - Codex - second Editor attempt remains licence-IPC blocked
+
+- Retried Build-Headset.ps1 after Abbas reported Unity open. Both model assets generated. Editor log again reports LicenseClient-iAbba connection refused, 60-second timeout and licensing initialization failure. No unity-tests.xml and no ShowroomVR-Linked.apk at the latest check. The process may retry internally; this is blocked, not a passing build.
+- CUA inventory showed Unity Hub rather than an Editor project. The Hub access attempt timed out awaiting computer-use app approval. No user window was closed or licence settings changed.
+- Runtime-source Editor/Android compilation passes; full Editor/PICO/IL2CPP still unverified. AR workflow 43009201946 passed on 78dfc7e; mobile workflow 43009201854 remains in progress.
+- Claude review changes are published and reported in PR comment 6794162521. A working desktop Editor session with reachable licensing IPC is still needed. Physical device tests, Pages prerequisites, iPhone signing and CAD approval remain open.
+
+
 ## 2026-11-11 - Codex - Claude plan revisions implemented
 
 - Applied Claude comment 6793749880: explicit Standard shader failure, pinned PICO SDK commit in loader failure, source-check output explicitly excludes asmdef resolution and Assets/Editor.
