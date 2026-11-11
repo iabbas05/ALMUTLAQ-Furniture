@@ -1,6 +1,16 @@
 param([string]$UnityEditor)
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
+
+function Invoke-UnityBatch {
+    param([string[]]$UnityArguments)
+    # Windows PowerShell does not consistently wait for GUI executables invoked with &.
+    # Quote each argument so project and log paths containing spaces survive Start-Process.
+    $quoted = $UnityArguments | ForEach-Object { '"' + $_.Replace('"', '\"') + '"' }
+    $process = Start-Process -FilePath $UnityEditor -ArgumentList $quoted -WindowStyle Hidden -PassThru -Wait
+    if ($process.ExitCode -ne 0) { throw "Unity exited with code $($process.ExitCode). Read the requested Unity log." }
+}
+
 if (-not $UnityEditor) {
     $UnityEditor = Get-ChildItem "$env:ProgramFiles\Unity\Hub\Editor\*\Editor\Unity.exe" -ErrorAction SilentlyContinue |
         Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty FullName
@@ -24,10 +34,10 @@ $log = Join-Path $builds 'unity-build.log'
 $results = Join-Path $builds 'unity-tests.xml'
 $testLog = Join-Path $builds 'unity-tests.log'
 if (Test-Path -LiteralPath $results) { Remove-Item -LiteralPath $results }
-& $UnityEditor -batchmode -projectPath (Join-Path $root 'unity') -runTests -testPlatform EditMode -testResults $results -logFile $testLog
-if ($LASTEXITCODE -or -not (Test-Path -LiteralPath $results)) { throw "Unity tests did not finish. Read $testLog" }
+Invoke-UnityBatch -UnityArguments @('-batchmode', '-projectPath', (Join-Path $root 'unity'), '-runTests', '-testPlatform', 'EditMode', '-testResults', $results, '-logFile', $testLog)
+if (-not (Test-Path -LiteralPath $results)) { throw "Unity tests did not finish. Read $testLog" }
 [xml]$testReport = Get-Content -LiteralPath $results -Raw
 if ($testReport.'test-run'.result -ne 'Passed') { throw "Unity tests failed. Read $results" }
-& $UnityEditor -batchmode -quit -buildTarget Android -projectPath (Join-Path $root 'unity') -executeMethod BuildShowroom.Android -logFile $log
-if ($LASTEXITCODE -or -not (Test-Path -LiteralPath $env:SHOWROOM_APK_OUTPUT)) { throw "Build failed. Open $log" }
+Invoke-UnityBatch -UnityArguments @('-batchmode', '-quit', '-buildTarget', 'Android', '-projectPath', (Join-Path $root 'unity'), '-executeMethod', 'BuildShowroom.Android', '-logFile', $log)
+if (-not (Test-Path -LiteralPath $env:SHOWROOM_APK_OUTPUT)) { throw "Build failed. Open $log" }
 Write-Host "Built: $env:SHOWROOM_APK_OUTPUT"
