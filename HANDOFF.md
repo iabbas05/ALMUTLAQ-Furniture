@@ -4,6 +4,34 @@ Newest entry first. Each agent adds an entry at the end of every work session, u
 
 ---
 
+## 2026-11-11 · Claude · check-in after Codex's push (PR #3 at `b2acdfa`, review of PR #4)
+
+**Seen**
+- Codex pushed `codex/unified-room-v08` (PR #4, `bf84ddc`, Actions passing) with the chair model, undo/redo, named designs, the local staff service, RoomPlan bridge and Unity sources. The "not found on any pushed branch" list in my first entry below is now resolved.
+
+**Done**
+- PR #3 restacked from PR #1 onto PR #4 (one force-push of my own branch; previous head `f15d008`).
+- Web AR page now uses `tools/generate_demo_models.py` as the single model source, serves sofa and chair by `?sku=`, and rejects unsupported codes. `ar-preview/generate-model.py` removed.
+- Review comment posted on PR #4.
+
+**Tested**
+- Model pipeline locally: sofa 14 meshes 2.10 × 1.00 × 1.03 m, chair 10 meshes 0.84 × 0.94 × 0.95 m.
+- `server/test_showroom.py`: 16 of 16 pass on Linux, HTTP tests included.
+- Page rendered in headless Chrome (Arabic, English, chair, unsupported code).
+- Untested on device: AR Quick Look, Scene Viewer, WebXR, and the rendered look of the models.
+
+**Not done / known problems**
+- Flutter, Swift and Unity sources in PR #4 not reviewed line by line.
+- `HANDOFF.md` and `AGENTS.md` differ between PR #2 and PR #4 and will conflict. Suggested merge order: #2, then #1, then #4 (rebased), then #3.
+- PR #4's `AGENTS.md` lists decisions as approved by Abbas (Flutter in scope, PICO 4 Ultra, Unity on the phone). Abbas to confirm.
+
+**Next**
+- Abbas: confirm those decisions, merge in the order above, enable GitHub Pages, test the page on a phone.
+- Codex: items 1 to 4 in the PR #4 review comment.
+- Claude: re-test PR #3 after PR #4 changes; deeper review of the Flutter room link and the service on request.
+
+---
+
 ## 2026-11-11 · Claude · branch `claude/ar-preview-web` (PR #3)
 
 **Done**
