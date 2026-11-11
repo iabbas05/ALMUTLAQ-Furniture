@@ -6,7 +6,7 @@ No connected headset is required to build. Open this repository's `unity/` proje
 
 The menu offers to save modified scenes, runs only Almutlaq.Showroom.Tests in Edit Mode, writes builds/unity-editor-tests.xml, and builds only after at least one test passes with no failures. It writes a fresh pending APK before promoting it to builds/ShowroomVR-Linked.apk. The existing APK survives a failed build. The menu is a new unverified Editor integration until run in a working licensed Editor; runtime-source compilation does not validate it.
 
-This path uses the Editor already open on the desktop rather than launching another batch-mode process. It still requires a working Unity licence, resolved PICO packages and Android support. If model resources are missing, run Build-Headset.ps1 to generate them before opening the project. No auto-build occurs just by opening the project.
+This path uses the Editor already open on the desktop rather than launching another batch-mode process. It still requires a working Unity licence, resolved PICO packages and Android support. If model resources are missing, run `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Build-Headset.ps1 -PrepareOnly` before opening the project. PrepareOnly generates/copies both models without launching Unity or using ADB. No auto-build occurs just by opening the project.
 
 ## First device run: actions at the Windows desktop
 

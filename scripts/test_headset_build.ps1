@@ -9,6 +9,7 @@ $fixtureState = @{ scenario = ""; buildCalled = $false }
 # Substitute only the external Unity process. Exercise the real build script and model generator.
 function Start-Process {
     param($FilePath, $ArgumentList, $WindowStyle, [switch]$PassThru, [switch]$Wait)
+    if ($fixtureState.scenario -eq 'prepare-only') { throw 'Prepare-only launched Unity.' }
     if (-not $Wait -or -not $PassThru -or $WindowStyle -ne 'Hidden') { throw 'Unity launch must wait and stay hidden.' }
     $argsList = @($ArgumentList | ForEach-Object { $_.Trim('"') })
     $project = $argsList[[Array]::IndexOf($argsList, '-projectPath') + 1]
@@ -31,6 +32,12 @@ function Start-Process {
     return [pscustomobject]@{ExitCode = 0}
 }
 try {
+    $fixtureState.scenario = 'prepare-only'
+    & (Join-Path $fixture 'Build-Headset.ps1') -UnityEditor (Join-Path $fixture 'missing-editor.exe') -PrepareOnly | Out-Null
+    foreach ($sku in @('10_14_3','6_14_5')) {
+        if (-not (Test-Path -LiteralPath (Join-Path $fixture "unity/Assets/Resources/Models/london-$sku.json"))) { throw 'Prepare-only did not create both model resources.' }
+    }
+    Write-Host 'PASS: prepare-only without a Unity installation'
     New-Item -ItemType Directory -Path (Join-Path $fixture 'builds') -Force | Out-Null
     $apk = Join-Path $fixture 'builds/ShowroomVR-Linked.apk'
     foreach ($case in @('process-failure', 'missing-report', 'zero-tests', 'failed-tests', 'missing-apk', 'empty-apk', 'success')) {

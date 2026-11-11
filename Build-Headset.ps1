@@ -1,4 +1,4 @@
-param([string]$UnityEditor)
+param([string]$UnityEditor, [switch]$PrepareOnly)
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
 
@@ -15,7 +15,7 @@ if (-not $UnityEditor) {
     $UnityEditor = Get-ChildItem "$env:ProgramFiles\Unity\Hub\Editor\*\Editor\Unity.exe" -ErrorAction SilentlyContinue |
         Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty FullName
 }
-if (-not $UnityEditor -or -not (Test-Path -LiteralPath $UnityEditor)) { throw 'Unity Editor is missing. Pass -UnityEditor with its full path.' }
+if (-not $PrepareOnly -and (-not $UnityEditor -or -not (Test-Path -LiteralPath $UnityEditor))) { throw 'Unity Editor is missing. Pass -UnityEditor with its full path.' }
 $python = Get-Command python -ErrorAction SilentlyContinue
 if (-not $python) { $python = Get-Command py -ErrorAction SilentlyContinue }
 if (-not $python) { throw 'Python 3 is required.' }
@@ -25,6 +25,12 @@ $resources = Join-Path $root 'unity\Assets\Resources\Models'
 New-Item -ItemType Directory -Force $resources | Out-Null
 Get-ChildItem (Join-Path $root 'generated-models\*.mesh.json') | ForEach-Object {
     Copy-Item $_.FullName (Join-Path $resources ($_.Name.Replace('.mesh.json', '.json'))) -Force
+}
+if ($PrepareOnly) {
+    Write-Host "Prepared both model resources: $resources"
+    Write-Host "Open project: $(Join-Path $root 'unity')"
+    Write-Host 'No Unity process, headset or ADB was started.'
+    return
 }
 $builds = Join-Path $root 'builds'
 New-Item -ItemType Directory -Force $builds | Out-Null

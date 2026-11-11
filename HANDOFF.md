@@ -1,5 +1,16 @@
 # Handoff log
 
+## 2026-11-11 - Codex - completion audit and precise remaining steps
+
+- Corrected the scope of earlier time estimates: elapsed preparation/source-check time was not a complete build. No fixed full-product completion estimate is established by these results.
+- Added Build-Headset.ps1 -PrepareOnly to generate both resources without opening Unity, requiring an Editor installation or touching ADB. Eight simulated build/preparation regression cases pass locally; fifteen storage tests pass.
+- Hardened in-Editor build callback: startup errors clean up, and the result must match a run tree containing only Almutlaq.Showroom.Tests before packaging. These Editor changes remain uncompiled/unexecuted in real Unity; do not count local runtime C# checks as their validation.
+- Verified workflow 43009850101 fully passed on 15e0c55 (Windows, protocol/browser, Flutter tests/analysis, Android APK and unsigned IPA); AR workflow 43009849653 passed. New checkpoint CI pending.
+- docs/DELIVERY_STATUS.md records verified outputs, written-but-unvalidated Editor work, desktop build steps, physical acceptance steps, external account/asset dependencies and unfinished engineering separately. Runbook updated to avoid starting blocked Unity merely to prepare models.
+- Latest batch Unity attempt crashed after licence IPC/Burst/Mono socket failures. No headset APK or successful Unity edit-mode report exists. No connected headset is required for the build, only for physical acceptance.
+- Do not introduce new product features before the agreed first-device gate. Phone Unity embedding, passthrough, commercial integrations and production models remain unfinished work, not owner-only settings.
+
+
 ## 2026-11-11 - Codex - build inside the already-open Editor
 
 - Added Almutlaq > Test and build PICO APK menu in BuildFromEditor.cs. Requires Android active target, finished compilation and model resources; prompts to save modified scenes. Runs only Almutlaq.Showroom.Tests through Unity Test Framework, saves unity-editor-tests.xml and refuses zero/failed tests. After callbacks unwind, builds a fresh pending APK and replaces the prior output only after success. No headset or ADB needed to build.

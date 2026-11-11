@@ -6,12 +6,13 @@ using UnityEditor.TestTools.TestRunner.Api;
 using UnityEngine;
 
 // Uses the already-open licensed Editor. No headset or ADB connection is needed.
-public sealed class BuildFromEditor : ICallbacks
+public sealed class BuildFromEditor : IErrorCallbacks
 {
     private static TestRunnerApi runner;
     private static BuildFromEditor listener;
     private static bool busy;
     private string outputDirectory;
+    private string ownedRootId;
 
     [MenuItem("Almutlaq/Test and build PICO APK")]
     public static void StartBuild()
@@ -24,7 +25,7 @@ public sealed class BuildFromEditor : ICallbacks
         if (!EditorSceneManagerSave()) return;
         foreach (var sku in new[] { "10_14_3", "6_14_5" })
             if (!File.Exists("Assets/Resources/Models/london-" + sku + ".json"))
-                throw new BuildFailedException("Generate the model resources with Build-Headset.ps1 before using the Editor build menu.");
+                throw new BuildFailedException("Run Build-Headset.ps1 -PrepareOnly to generate resources without launching another Editor, then retry this menu.");
 
         listener = new BuildFromEditor {
             outputDirectory = Path.GetFullPath(Path.Combine(Application.dataPath, "../../builds"))
@@ -48,11 +49,38 @@ public sealed class BuildFromEditor : ICallbacks
     private static bool EditorSceneManagerSave() =>
         UnityEditor.SceneManagement.EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo();
 
-    public void RunStarted(ITestAdaptor testsToRun) { }
+    public void RunStarted(ITestAdaptor testsToRun)
+    {
+        if (OnlyShowroomAssembly(testsToRun, out var found) && found) ownedRootId = testsToRun.Id;
+    }
+    private static bool OnlyShowroomAssembly(ITestAdaptor test, out bool found)
+    {
+        found = false;
+        if (test == null) return false;
+        if (test.IsTestAssembly) {
+            found = true;
+            return Path.GetFileNameWithoutExtension(test.Name) == "Almutlaq.Showroom.Tests";
+        }
+        foreach (var child in test.Children) {
+            if (!OnlyShowroomAssembly(child, out var childFound)) return false;
+            found |= childFound;
+        }
+        return true;
+    }
+    public void OnError(string message)
+    {
+        Debug.LogError("PICO build stopped before tests completed: " + message);
+        Cleanup();
+    }
     public void TestStarted(ITestAdaptor test) { }
     public void TestFinished(ITestResultAdaptor result) { }
     public void RunFinished(ITestResultAdaptor result)
     {
+        if (result == null || result.Test == null || ownedRootId == null || result.Test.Id != ownedRootId) {
+            Debug.LogError("PICO build stopped: test results did not match the showroom test run.");
+            Cleanup();
+            return;
+        }
         try {
             TestRunnerApi.SaveResultToFile(result, Path.Combine(outputDirectory, "unity-editor-tests.xml"));
             if (result.ResultState != "Passed" || result.PassCount < 1 || result.FailCount != 0) {
