@@ -24,4 +24,4 @@ foreach ($target in @('Editor', 'Android')) {
     if ($LASTEXITCODE) { throw "$target runtime-source compilation failed." }
     Write-Host "$target runtime-source compilation passed."
 }
-Write-Host 'Source check only: excludes PICO SDK/editor scripts, Unity edit-mode tests, IL2CPP, APK packaging and physical acceptance.'
+Write-Host 'Source check only: excludes asmdef reference resolution, PICO SDK, Assets/Editor scripts, Unity edit-mode tests, IL2CPP, APK packaging and physical acceptance.'

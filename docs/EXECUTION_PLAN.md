@@ -1,10 +1,14 @@
 # Implementation and review plan
-Updated 2026-11-11. Proposed by Codex for Claude review at Abbas's request.
+Updated 2026-11-11. Reviewed by Claude in PR #4 comment 6793749880; revisions incorporated below at Abbas's request.
 
 ## Goal and recommended sequence
 Deliver a reproducible PICO 4 Ultra showroom demonstration first. Build without a connected headset; reserve installation, tracking, scale and performance acceptance for the device session. Keep the existing native Flutter catalogue and the shared metre-based room contract. Use the same versioned GLB/USDZ/mesh outputs for both London products. Do not expand commercial features before the first device pass.
 
-This is a sequencing recommendation. Claude has not yet reviewed this document. Existing device choice and scope were explicitly confirmed by Abbas and are not open questions.
+Claude accepted the sequence and architecture with the revisions now incorporated here. Existing device choice and scope were explicitly confirmed by Abbas and are not open questions.
+
+The current showroom demo is a fully rendered virtual room created from entered dimensions. It does not enable camera passthrough or overlay furniture on the real room. Passthrough is a separate future task, with separate environment/privacy and device acceptance. Describe this distinction in every client document.
+
+The USB demo is a development build: BuildOptions.Development and insecureHttpOption = DevelopmentOnly permit its loopback HTTP link. A release build needs an approved transport configuration and new end-to-end tests before delivery. Do not merely switch off development mode and assume the current link will work.
 
 ## Evidence and current limits
 - Code checkpoint 8139f1d: mobile workflow 43003769899 passed Windows launch persistence, seven simulated Unity build cases, protocol/storage/HTTP/browser checks, Flutter analysis/tests, Android APK and unsigned iOS IPA.
@@ -33,8 +37,9 @@ PICO SDK remains pinned to the current official source commit. Do not switch hea
 | P1 | Run Test-HeadsetSource.ps1 for Editor and Android conditional source | Codex | Installed Editor references and .NET SDK | Both compilations pass; limits shown in output |
 | P1 | Resolve full Unity execution environment and build without headset | Codex, with Claude review | Working licensed Editor, package/network/IPC access, Android modules | PICO SDK import, editor compile, nonempty passed edit-mode test report, fresh ARM64 APK and build log |
 | P1 | Independently review Unity build/loader and launch flow | Claude | Current branch | Specific findings with file/line and reproduction; no claim of physical validation |
+| P1 | Proposal and client documents match the build | Claude | Current architecture and confirmed PICO 4 Ultra | Claude reports headset wording corrected; reconcile rendered-room/no-passthrough description and confirm actual pilot hardware count before purchase planning |
 | P2 | First physical PICO pass | Codex with Abbas at headset | Fresh APK, powered headset and USB debugging acceptance | DEVICE_TESTS checklist with observed values and logs |
-| P2 | Publish and verify HTTPS AR site | Claude | Owner-accessible Pages configuration and approved publication branch | Live URL serves correct sofa/chair assets, unknown SKU handled, native phone checks |
+| P2 | Publish and verify HTTPS AR site | Claude | PR #4 merged to main AND Settings > Pages > Source set to GitHub Actions | Deployment prints the real URL, both products load, unknown SKU handled, native phone checks |
 | P2 | Rebuild Android with verified AR URL | Codex | Actual deployed HTTPS address | Recorded input plus fresh APK, correct SKU/language target |
 | P3 | Phone Unity integration prototype | Codex, Claude review | First headset pass | Separate integration branch; model/room exchange, lifecycle, memory and return navigation checks on real devices |
 | P3 | RoomPlan and native iPhone validation | Codex | Supported signed device build | Review-before-apply, reject unsupported/nonrectangular auto-replacement, correct scale |

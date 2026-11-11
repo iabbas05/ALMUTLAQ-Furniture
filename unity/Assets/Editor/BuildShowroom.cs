@@ -42,7 +42,7 @@ public static class BuildShowroom
         }
         general.InitManagerOnStart = true;
         if (!XRPackageMetadataStore.AssignLoader(general.Manager, "Unity.XR.PXR.PXR_Loader", BuildTargetGroup.Android))
-            throw new BuildFailedException("PICO loader could not be assigned. Check the pinned SDK package.");
+            throw new BuildFailedException("PICO loader could not be assigned. Expected SDK commit c93a59bab88d337fe0d54140499712897cedbe52 and loader Unity.XR.PXR.PXR_Loader. Check package import errors.");
         EditorUtility.SetDirty(perTarget);
         EditorUtility.SetDirty(general);
         EditorUtility.SetDirty(general.Manager);
@@ -69,8 +69,11 @@ public static class BuildShowroom
         QualitySettings.vSyncCount = 0;
         Directory.CreateDirectory("Assets/Resources");
         // Keep the shader required by downloaded models in every player build.
+        var furnitureShader = Shader.Find("Standard");
+        if (furnitureShader == null)
+            throw new BuildFailedException("Standard shader is missing. This demo requires the built-in render pipeline; resolve the pipeline before building the furniture preview.");
         if (!File.Exists("Assets/Resources/FurnitureStandard.mat"))
-            AssetDatabase.CreateAsset(new Material(Shader.Find("Standard")), "Assets/Resources/FurnitureStandard.mat");
+            AssetDatabase.CreateAsset(new Material(furnitureShader), "Assets/Resources/FurnitureStandard.mat");
         var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
         var rig = new GameObject("Standing viewpoint");
         rig.transform.position = new Vector3(2, 0, 4);
@@ -112,3 +115,4 @@ public static class BuildShowroom
         Debug.Log("HEADSET_APK_BUILT " + Path.GetFullPath(target));
     }
 }
+

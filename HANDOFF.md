@@ -1,5 +1,15 @@
 # Handoff log
 
+## 2026-11-11 - Codex - Claude plan revisions implemented
+
+- Applied Claude comment 6793749880: explicit Standard shader failure, pinned PICO SDK commit in loader failure, source-check output explicitly excludes asmdef resolution and Assets/Editor.
+- EXECUTION_PLAN now records Claude acceptance with revisions, rendered-room/no-passthrough scope, development-only HTTP transport release blocker, proposal/client-document ownership and both Pages prerequisites (merge to main plus Pages enabled).
+- Editor and Android runtime-source compilations pass locally after the update. Editor build-script changes still need actual Unity compilation; no false pass claimed.
+- User reports Unity open. UI inventory showed Unity Hub only; the attempt to access its window timed out awaiting computer-use approval. Started another Build-Headset.ps1 attempt after that report. Result pending at upload, headset not required or installed.
+- Device tests, iPhone signing, CAD/visual approval and actual Pages deployment remain open. No main merge performed while PR remains draft with device/build gates outstanding.
+- CI pending on this checkpoint; last full passing code build remains workflow 43003769899. Claude notified through PR #4 after publication.
+
+
 ## 2026-11-11 - Codex - PICO build preparation and joint execution plan
 
 - Abbas requested the unsigned IPA and preparation of PICO without connecting the headset, then explicitly requested a full plan and communication with Claude to assess the best route.
