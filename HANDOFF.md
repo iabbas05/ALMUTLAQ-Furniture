@@ -1,5 +1,14 @@
 # Handoff log
 
+## 2026-11-11 - Codex - real package import and PICO EntityId compatibility
+
+- User reported PICO SpatialAudio CS0619 at SceneGeometry.cs:414 after opening the project. The old Integration SDK's baked filename uses GetInstanceID, removed in Unity 6.6.
+- Compared official PICO-Unity-SDK XR/SpatialAudio source at main 673b0f84355585c45aaf0ba477d48f480472e51d, which uses UNITY_6000_4_OR_NEWER with EntityId.ToULong(GetEntityId()). Added Repair-PICOUnity66.ps1 to apply that narrow conditional to the pinned 3.4.0 cache, keeping a local ignored backup and refusing unexpected source. No SDK-wide migration or vendor source redistribution. Ran it successfully and verified idempotence. Reapply after refreshing the vendor package cache.
+- Observed generated lock now resolves XR Management 4.7.0 without legacy VR module. Fresh Almutlaq/PICO/Spatializer/test DLLs appeared in Library/ScriptAssemblies during the user's real import; this is substantially beyond prior runtime-only checks.
+- Updated BuildShowroom to XR 4.7 settingsKey and Manager APIs. Independent Roslyn compilation of both Assets/Editor scripts against installed Unity modules, actual resolved project/vendor/test assemblies and the netstandard mscorlib shim passed with zero output/exit 0. Initial missing/duplicate reference setup errors in this standalone check were corrected before the successful run.
+- This is Editor-source compilation evidence, not edit-mode test execution, IL2CPP/APK packaging or physical acceptance. The user should enter Safe Mode/retry resolution and let the actual Editor recompile. A stale dialog may still show the old 4.5.0 error; on-disk manifest and fresh lock now select 4.7.0. New CI pending.
+
+
 ## 2026-11-11 - Codex - Unity 6.6 missing VR module package fix
 
 - User reached real package resolution and reported XR Management 4.5.0 requesting unavailable com.unity.modules.vr@1.0.0. Confirmed the module is absent from this installed Editor, and the generated lock recorded that legacy dependency.

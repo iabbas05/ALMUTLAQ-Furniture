@@ -21,11 +21,11 @@ public static class BuildShowroom
             if (!File.Exists("Assets/Resources/Models/london-" + sku + ".json"))
                 throw new BuildFailedException("Run Build-Headset.ps1 first to generate both model resources.");
         Directory.CreateDirectory("Assets/XR");
-        if (!EditorBuildSettings.TryGetConfigObject(XRGeneralSettings.k_SettingsKey, out XRGeneralSettingsPerBuildTarget perTarget))
+        if (!EditorBuildSettings.TryGetConfigObject(XRGeneralSettings.settingsKey, out XRGeneralSettingsPerBuildTarget perTarget))
         {
             perTarget = ScriptableObject.CreateInstance<XRGeneralSettingsPerBuildTarget>();
             AssetDatabase.CreateAsset(perTarget, "Assets/XR/Settings.asset");
-            EditorBuildSettings.AddConfigObject(XRGeneralSettings.k_SettingsKey, perTarget, true);
+            EditorBuildSettings.AddConfigObject(XRGeneralSettings.settingsKey, perTarget, true);
         }
         var general = perTarget.SettingsForBuildTarget(BuildTargetGroup.Android);
         if (general == null)
@@ -38,7 +38,7 @@ public static class BuildShowroom
         {
             var manager = ScriptableObject.CreateInstance<XRManagerSettings>();
             AssetDatabase.AddObjectToAsset(manager, perTarget);
-            general.AssignedSettings = manager;
+            general.Manager = manager;
         }
         general.InitManagerOnStart = true;
         if (!XRPackageMetadataStore.AssignLoader(general.Manager, "Unity.XR.PXR.PXR_Loader", BuildTargetGroup.Android))
