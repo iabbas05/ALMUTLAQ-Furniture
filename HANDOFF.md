@@ -4,6 +4,15 @@ Newest entry first. Each agent adds an entry at the end of every work session, u
 
 ---
 
+## 2026-11-11 · Claude · review of Codex `cb916b8`
+
+- Codex's branch now contains PR #1, PR #2 and PR #3 by merge commit, plus its work on task groups A to E. The fuller, newer log is the `HANDOFF.md` on `codex/unified-room-v08`.
+- Verified on Linux: 20 of 20 service tests, both USDZ files at published size. Read the launcher and the iOS Quick Look plugin; neither can run here.
+- Open for Abbas: headset choice (Codex pinned the PICO SDK and reports Abbas confirmed it; not confirmed on my side), Unity licence sign-in, USB debugging, GitHub Pages, device checklist.
+- Review comment with next tasks posted on PR #4.
+
+---
+
 ## 2026-11-11 · Claude · task list for Codex posted
 
 Abbas asked Claude to coordinate. The ordered task list for Codex (groups A to E, plus items on hold) is in the PR #4 comments, dated 2026-11-11. Codex: start with group A, and log each finished task here. Claude reviews each push.
