@@ -1,5 +1,14 @@
 # Handoff log
 
+## 2026-11-11 - Codex - Unity 6.6 missing VR module package fix
+
+- User reached real package resolution and reported XR Management 4.5.0 requesting unavailable com.unity.modules.vr@1.0.0. Confirmed the module is absent from this installed Editor, and the generated lock recorded that legacy dependency.
+- Pinned XR Management 4.7.0, the Unity 6000.6 released package per official documentation. Unity's XR Management changelog records removal of the old VR dependency in later versions. PICO SDK pin unchanged.
+- Validated manifest JSON, selected XR version, and existence of every directly declared built-in module against the installed Editor. Backed up the stale generated lock under ignored builds/ and removed only the local generated lock so Unity can resolve again. Did not delete Library or vendor package source.
+- User should click Retry in the existing resolution dialog. Actual full dependency resolution, Editor/PICO compilation and APK still require observation; this edit is not a build pass. New CI pending.
+- Sources: https://docs.unity.com/en-us/engine/6000.6/manual/packages-list/packages-all/pack-safe/com-unity-xr-management and https://docs.unity3d.com/Packages/com.unity.xr.management@4.7/changelog/CHANGELOG.html
+
+
 ## 2026-11-11 - Codex - assembly-name gate correction
 
 - Editor review found the run-tree gate used GetFileNameWithoutExtension on an assembly display name. For a name without .dll this would strip .Tests and reject the intended run. The gate now accepts only the exact showroom assembly name with or without .dll. Full Editor execution remains unverified; no APK success claimed. New CI pending.

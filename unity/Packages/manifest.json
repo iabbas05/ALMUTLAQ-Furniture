@@ -1,7 +1,7 @@
 {
   "dependencies": {
     "com.unity.test-framework": "1.4.6",
-    "com.unity.xr.management": "4.5.0",
+    "com.unity.xr.management": "4.7.0",
     "com.unity.xr.picoxr": "https://github.com/Pico-Developer/PICO-Unity-Integration-SDK.git#c93a59bab88d337fe0d54140499712897cedbe52",
     "com.unity.modules.androidjni": "1.0.0",
     "com.unity.modules.audio": "1.0.0",
@@ -14,3 +14,4 @@
     "com.unity.modules.xr": "1.0.0"
   }
 }
+
