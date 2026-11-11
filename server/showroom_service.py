@@ -278,7 +278,8 @@ class Handler(BaseHTTPRequestHandler):
     def host_ok(self):
         # Prevent browser DNS rebinding to this local staff panel.
         return self.headers.get("Host") in (
-            f"127.0.0.1:{self.server.server_port}", f"localhost:{self.server.server_port}")
+            f"127.0.0.1:{self.server.server_port}", f"localhost:{self.server.server_port}",
+            "127.0.0.1:8766", "localhost:8766")
 
     def origin_ok(self):
         return self.headers.get("Origin") in (None,
@@ -350,6 +351,15 @@ class Handler(BaseHTTPRequestHandler):
             return self.send(self.server.store.snapshot())
         if path == "/api/catalogue":
             return self.send({"products": list(self.server.store.products.values()), "categories": self.server.store.categories()})
+        if path == "/api/model-version":
+            query = parse_qs(url.query)
+            with self.server.store.lock:
+                product = self.server.store.products.get(query.get("id", [""])[0])
+                version = query.get("version", [""])[0]
+                metadata = product.get("versions", {}).get(version) if product else None
+                if metadata:
+                    return self.send({**metadata, "dimensions": product["dimensions"]})
+            return self.send({"error": "Model version not found"}, 404)
         if path.startswith("/models/"):
             name = path[len("/models/"):]
             if not re.fullmatch(r"[a-f0-9]{64}(?:\.mesh\.json|\.glb)", name):

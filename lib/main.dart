@@ -145,7 +145,7 @@ class _FurnitureAppState extends State<FurnitureApp> {
     widget.preferences.setString('cart', jsonEncode(cart));
   }
 
-  Widget photo(Product p, double height) {
+  Widget photo(Product p, double? height) {
     final placeholder = SizedBox(
       height: height,
       child: const Center(child: Icon(Icons.weekend_outlined, size: 48)),
@@ -300,25 +300,63 @@ class _FurnitureAppState extends State<FurnitureApp> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          photo(p, 165),
-          ListTile(
-            title: Text(title(p), maxLines: 2, overflow: TextOverflow.ellipsis),
-            subtitle: Text(p.price.isEmpty ? p.size : p.price),
-            trailing: IconButton(
-              tooltip: tr('المفضلة', 'Favourites'),
-              onPressed: () => toggleFavourite(p),
-              icon: Icon(
-                favourites.contains(p.key)
-                    ? Icons.favorite
-                    : Icons.favorite_border,
-              ),
+          Expanded(
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: photo(p, null),
+                ),
+                PositionedDirectional(
+                  top: 0,
+                  end: 0,
+                  child: IconButton(
+                    tooltip: tr('المفضلة', 'Favourites'),
+                    onPressed: () => toggleFavourite(p),
+                    icon: Icon(
+                      favourites.contains(p.key)
+                          ? Icons.favorite
+                          : Icons.favorite_border,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title(p),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  p.price.isEmpty ? p.size : p.price,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
             child: Row(
               children: [
-                if (p.geometry != null) const Icon(Icons.view_in_ar, size: 18),
+                if (p.geometry != null)
+                  Tooltip(
+                    message: tr(
+                      'جاهز لمعاينة الغرفة',
+                      'Room preview available',
+                    ),
+                    child: const Icon(Icons.view_in_ar, size: 18),
+                  ),
                 const Spacer(),
                 IconButton(
                   tooltip: tr('قارن المنتج', 'Compare product'),

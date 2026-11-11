@@ -19,12 +19,14 @@ Future<void> screenshot(WidgetTester tester, GlobalKey key, String name) async {
   await tester.pumpAndSettle();
   final boundary =
       key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
-  final image = await boundary.toImage(pixelRatio: 2);
-  final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
-  final folder = Directory('build/preview')..createSync(recursive: true);
-  File('${folder.path}/$name.png')
-      .writeAsBytesSync(bytes!.buffer.asUint8List());
-  image.dispose();
+  await tester.runAsync(() async {
+    final image = await boundary.toImage(pixelRatio: 2);
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+    final folder = Directory('build/preview')..createSync(recursive: true);
+    File('${folder.path}/$name.png')
+        .writeAsBytesSync(bytes!.buffer.asUint8List());
+    image.dispose();
+  });
 }
 
 void main() {
@@ -36,7 +38,11 @@ void main() {
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
-      await font();
+      await tester.runAsync(() async {
+        await font();
+        await LondonMesh.load();
+        await LondonMesh.load('assets/london-6_14_5.glb');
+      });
       SharedPreferences.setMockInitialValues({'arabic': true});
       final prefs = await SharedPreferences.getInstance(), key = GlobalKey();
       await tester.pumpWidget(
@@ -76,7 +82,11 @@ void main() {
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
-      await font();
+      await tester.runAsync(() async {
+        await font();
+        await LondonMesh.load();
+        await LondonMesh.load('assets/london-6_14_5.glb');
+      });
       SharedPreferences.setMockInitialValues({'arabic': true});
       await tester.pumpWidget(
         FurnitureApp(await SharedPreferences.getInstance(), fetchOnline: false),

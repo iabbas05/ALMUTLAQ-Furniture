@@ -176,6 +176,9 @@ class HttpTests(unittest.TestCase):
         self.bootstrap()
         self.assertEqual(self.call("/api/pairing", {}, {"Origin":"https://attacker.example"})[0], 403)
 
+    def test_adb_reverse_loopback_host_alias_is_allowed(self):
+        self.assertEqual(self.call("/api/health", headers={"Host":"127.0.0.1:8766"})[0], 200)
+
     def test_send_requires_ack_and_stale_edit_returns_conflict(self):
         self.bootstrap()
         _, room = self.call("/api/state")

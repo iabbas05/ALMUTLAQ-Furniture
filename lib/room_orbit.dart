@@ -14,10 +14,17 @@ typedef RoomFace = ({List<Point3> points, Color color});
 Point3 point(double x, double y, double z) => (x: x, y: y, z: z);
 
 class LondonMesh {
-  static final _cache = <String, Future<List<RoomFace>>>{};
+  static final _cache = <String, List<RoomFace>>{};
   static Future<List<RoomFace>> load([
     String path = 'assets/london-10_14_3.glb',
-  ]) => _cache.putIfAbsent(path, () => _decode(path));
+  ]) async {
+    final cached = _cache[path];
+    if (cached != null) return cached;
+    final result = await _decode(path);
+    _cache[path] = result;
+    return result;
+  }
+
   static Future<List<RoomFace>> _decode(String path) async {
     final asset = await rootBundle.load(path);
     final bytes = Uint8List.sublistView(asset);
