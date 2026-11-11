@@ -1,5 +1,15 @@
 # Handoff log
 
+## 2026-11-11 - Codex - PICO build preparation and joint execution plan
+
+- Abbas requested the unsigned IPA and preparation of PICO without connecting the headset, then explicitly requested a full plan and communication with Claude to assess the best route.
+- Retrieved IPA artifact 13847287869 from successful workflow 43003769899. It is unsigned and needs signing for normal iPhone installation.
+- Added Test-HeadsetSource.ps1: runtime C# compiles for both Editor and Android conditional symbols against installed Unity 6000.6.8f1 reference assemblies using Roslyn. Both pass locally. CS0649 warnings concern JSON-populated fields. This excludes PICO/editor source, edit-mode tests, IL2CPP and APK packaging; no headset build pass is claimed.
+- Added docs/EXECUTION_PLAN.md with architecture recommendation, dependency stages, owners, completion gates, device-independent work and a six-item Claude review request. Proposed sequence: PICO build, first device pass, hosted phone AR, then phone Unity integration and commercial features. Claude has not yet accepted this new plan.
+- Full Unity execution remains blocked in this automated environment by the observed IPC/socket crash. A headset is not needed to build; physical acceptance remains a separate gate. No licence bypass or environment restriction workaround attempted.
+- New CI pending for this upload. Last complete mobile/AR pass is recorded above.
+
+
 ## 2026-11-11 - Codex - verified build and artifacts
 
 - Mobile workflow 43003769899 completed successfully on code checkpoint 8139f1d: Windows launcher and seven simulated Unity build scenarios, protocol/storage/HTTP tests, staff browser checks, Flutter analysis/tests, Android APK and unsigned iOS IPA all passed. AR workflow 43003769966 passed.
