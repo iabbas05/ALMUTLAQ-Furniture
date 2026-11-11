@@ -10,6 +10,7 @@ from pathlib import Path
 import sys
 import tempfile
 import threading
+import time
 from urllib.request import Request, build_opener, ProxyHandler
 
 from playwright.sync_api import sync_playwright
@@ -35,6 +36,15 @@ def service():
             store.close()
 
 
+def wait(page, expression):
+    deadline = time.monotonic() + 15
+    while time.monotonic() < deadline:
+        if page.evaluate('() => (' + expression + ')'):
+            return
+        page.wait_for_timeout(100)
+    raise AssertionError('Timed out: ' + expression)
+
+
 def check():
     output = ROOT / "build/staff-preview"
     output.mkdir(parents=True, exist_ok=True)
@@ -45,23 +55,23 @@ def check():
         errors = []
         page.on("pageerror", lambda error: errors.append(str(error)))
         page.goto(url)
-        page.wait_for_function("typeof state !== 'undefined' && state.room.width === 4")
+        wait(page, "typeof state !== 'undefined' && state.room.width === 4")
         page.locator("#width").fill("5")
         page.locator("#measurements button").click()
-        page.wait_for_function("state.room.width === 5")
+        wait(page, "state.room.width === 5")
         assert page.locator("#connection").inner_text() == "بانتظار تأكيد النظارة"
         assert page.evaluate("catalogue.find(p=>p.sku==='10_14_3').dimensions.width") == 2.1
         page.locator("#products button").filter(has_text="كرسي لندن").click()
-        page.wait_for_function("state.items.length === 2")
+        wait(page, "state.items.length === 2")
         page.locator("#rotate").click()
-        page.wait_for_function("state.items[1].rotationY === 15")
+        wait(page, "state.items[1].rotationY === 15")
         # A rejected import must leave both the browser and saved room untouched.
         revision = page.evaluate("state.revision")
         page.get_by_text("استيراد تصميم من الجوال", exact=True).click()
         bad = page.evaluate("({...state,room:{...state.room,width:1}})")
         page.locator("#room-json").fill(json.dumps(bad))
         page.locator("#import").click()
-        page.wait_for_function("document.querySelector('#message').classList.contains('error')")
+        wait(page, "document.querySelector('#message').classList.contains('error')")
         assert page.evaluate("state.revision") == revision
         assert page.evaluate("state.room.width") == 5
         # Customer data stays on the staff service and requires consent.
@@ -69,12 +79,12 @@ def check():
         page.locator("#customer-phone").fill("00000000")
         page.locator("#customer-consent").check()
         page.locator("#save-customer button").click()
-        page.wait_for_function("document.querySelector('#message').textContent.includes('انحفظت التجربة')")
+        wait(page, "document.querySelector('#message').textContent.includes('انحفظت التجربة')")
         page.locator("nav button[data-tab=customers]").click()
         page.locator("#customer-list .customer-row").wait_for()
         assert "TEST CUSTOMER" in page.locator("#customer-list").inner_text()
         page.get_by_role("button", name="فتح التجربة", exact=True).click()
-        page.wait_for_function(f"state.revision > {revision}")
+        wait(page, f"state.revision > {revision}")
         assert page.evaluate("JSON.stringify(state).includes('00000000')") is False
         # Simulate the device protocol to verify status UI, not real device rendering.
         pair = page.evaluate("api('/api/pairing', {})")
@@ -88,9 +98,9 @@ def check():
         token = call("/api/pair", {"code": pair["code"]})["token"]
         state = page.evaluate("state")
         call("/api/ack", {"sessionId": state["sessionId"], "revision": state["revision"]}, token)
-        page.wait_for_function("document.querySelector('#connection').textContent.includes('أكدت')")
+        wait(page, "document.querySelector('#connection').textContent.includes('أكدت')")
         page.locator('#room-preview summary').click()
-        page.wait_for_function('roomPreview.cache.size === 2')
+        wait(page, 'roomPreview.cache.size === 2')
         page.screenshot(path=str(output / "staff-room-ar.png"), full_page=True)
         page.locator("nav button[data-tab=catalogue]").click()
         page.screenshot(path=str(output / "staff-catalogue-ar.png"), full_page=True)

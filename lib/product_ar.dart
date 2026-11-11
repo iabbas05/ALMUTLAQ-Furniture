@@ -8,7 +8,18 @@ class ProductAR {
   static const channel = MethodChannel('almutlaq/product_ar');
   static const supported = {'10_14_3', '6_14_5'};
 
-  static Future<bool> open(String sku, {String website = ''}) async {
+  static Uri? websiteUri(String sku, String website, {String language = 'ar'}) {
+    if (!supported.contains(sku)) return null;
+    final uri = Uri.tryParse(website);
+    if (uri == null || uri.scheme != 'https' || uri.host.isEmpty || uri.userInfo.isNotEmpty) return null;
+    return uri.replace(queryParameters: {
+      ...uri.queryParameters,
+      'sku': sku,
+      'lang': language == 'en' ? 'en' : 'ar',
+    });
+  }
+
+  static Future<bool> open(String sku, {String website = '', String language = 'ar'}) async {
     if (!supported.contains(sku)) return false;
     if (Platform.isIOS) {
       final result = await channel.invokeMapMethod<String, dynamic>(
@@ -17,10 +28,10 @@ class ProductAR {
       );
       return result?['opened'] == true;
     }
-    final uri = Uri.tryParse(website);
-    if (uri == null || uri.scheme != 'https' || uri.host.isEmpty) return false;
+    final uri = websiteUri(sku, website, language: language);
+    if (uri == null) return false;
     return launchUrl(
-      uri.replace(queryParameters: {...uri.queryParameters, 'sku': sku}),
+      uri,
       mode: LaunchMode.externalApplication,
     );
   }

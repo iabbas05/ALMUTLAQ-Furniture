@@ -10,4 +10,10 @@ void main() {
     expect(await ProductAR.open('10_14_3'), isFalse);
     expect(await ProductAR.open('6_14_5', website: 'http://example.com'), isFalse);
   });
+  test('Web handoff carries the selected product and current language', () {
+    final uri = ProductAR.websiteUri('6_14_5', 'https://example.com/ar/?source=app', language: 'en');
+    expect(uri?.queryParameters, {'source': 'app', 'sku': '6_14_5', 'lang': 'en'});
+    expect(ProductAR.websiteUri('missing', 'https://example.com/'), isNull);
+    expect(ProductAR.websiteUri('10_14_3', 'https://user@example.com/'), isNull);
+  });
 }

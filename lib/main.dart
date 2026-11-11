@@ -252,7 +252,7 @@ class _FurnitureAppState extends State<FurnitureApp> {
                   OutlinedButton.icon(
                     onPressed: () async {
                       try {
-                        final opened = await ProductAR.open(p.sku, website: arUrl);
+                        final opened = await ProductAR.open(p.sku, website: arUrl, language: arabic ? 'ar' : 'en');
                         if (!opened) throw const FormatException('Preview unavailable');
                       } catch (_) {
                         if (!context.mounted) return;
