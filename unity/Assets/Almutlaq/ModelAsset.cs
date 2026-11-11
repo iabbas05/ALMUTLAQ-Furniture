@@ -110,7 +110,7 @@ namespace Almutlaq.Showroom
                     material.color = new Color(part.color[0], part.color[1], part.color[2], part.color[3]).gamma;
                     material.SetFloat("_Glossiness", 1 - Mathf.Clamp01(part.roughness));
                     material.EnableKeyword("_EMISSION");
-                    materials.Add(material); meshes.Add(mesh); labels.Add(part.name);
+                    output.materials.Add(material); output.meshes.Add(mesh); output.labels.Add(part.name);
                 }
                 if (Mathf.Abs(bounds.size.x - expected.width) > .005f || Mathf.Abs(bounds.size.z - expected.depth) > .005f ||
                     Mathf.Abs(bounds.size.y - expected.height) > .005f || Mathf.Abs(bounds.min.y) > .005f ||

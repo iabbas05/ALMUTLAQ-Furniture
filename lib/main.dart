@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -10,6 +11,7 @@ import 'room_planner.dart';
 import 'room_geometry.dart';
 import 'room_orbit.dart';
 import 'app_updates.dart';
+import 'product_ar.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -246,19 +248,19 @@ class _FurnitureAppState extends State<FurnitureApp> {
                   icon: const Icon(Icons.add_home_outlined),
                   label: Text(tr('أضف إلى غرفتي', 'Add to my room')),
                 ),
-                if (arUrl.isNotEmpty)
+                if (Platform.isIOS || arUrl.isNotEmpty)
                   OutlinedButton.icon(
                     onPressed: () async {
-                      final uri = Uri.tryParse(arUrl);
-                      if (uri != null && uri.scheme == 'https') {
-                        await launchUrl(
-                          uri.replace(
-                            queryParameters: {
-                              ...uri.queryParameters,
-                              'sku': p.sku,
-                            },
-                          ),
-                          mode: LaunchMode.externalApplication,
+                      try {
+                        final opened = await ProductAR.open(p.sku, website: arUrl);
+                        if (!opened) throw const FormatException('Preview unavailable');
+                      } catch (_) {
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(tr(
+                            'تعذّر فتح المعاينة. جرّب العرض ثلاثي الأبعاد.',
+                            'Preview unavailable. Try the 3D view.',
+                          ))),
                         );
                       }
                     },

@@ -1,0 +1,26 @@
+param([string]$UnityEditor)
+$ErrorActionPreference = 'Stop'
+$root = $PSScriptRoot
+if (-not $UnityEditor) {
+    $UnityEditor = Get-ChildItem "$env:ProgramFiles\Unity\Hub\Editor\*\Editor\Unity.exe" -ErrorAction SilentlyContinue |
+        Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty FullName
+}
+if (-not $UnityEditor -or -not (Test-Path -LiteralPath $UnityEditor)) { throw 'Unity Editor is missing. Pass -UnityEditor with its full path.' }
+$python = Get-Command python -ErrorAction SilentlyContinue
+if (-not $python) { $python = Get-Command py -ErrorAction SilentlyContinue }
+if (-not $python) { throw 'Python 3 is required.' }
+& $python.Source (Join-Path $root 'tools\generate_demo_models.py') --output (Join-Path $root 'generated-models')
+if ($LASTEXITCODE) { throw 'Model generation failed.' }
+$resources = Join-Path $root 'unity\Assets\Resources\Models'
+New-Item -ItemType Directory -Force $resources | Out-Null
+Get-ChildItem (Join-Path $root 'generated-models\*.mesh.json') | ForEach-Object {
+    Copy-Item $_.FullName (Join-Path $resources ($_.Name.Replace('.mesh.json', '.json'))) -Force
+}
+$builds = Join-Path $root 'builds'
+New-Item -ItemType Directory -Force $builds | Out-Null
+$env:SHOWROOM_APK_OUTPUT = Join-Path $builds 'ShowroomVR-Linked.apk'
+$log = Join-Path $builds 'unity-build.log'
+# Unity must be closed for this project before batch mode opens it.
+& $UnityEditor -batchmode -quit -buildTarget Android -projectPath (Join-Path $root 'unity') -executeMethod BuildShowroom.Android -logFile $log
+if ($LASTEXITCODE -or -not (Test-Path -LiteralPath $env:SHOWROOM_APK_OUTPUT)) { throw "Build failed. Open $log" }
+Write-Host "Built: $env:SHOWROOM_APK_OUTPUT"

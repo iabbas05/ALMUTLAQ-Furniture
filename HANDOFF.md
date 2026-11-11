@@ -1,5 +1,36 @@
 # Handoff log
 
+## 2026-11-11 · Codex · integrated build checkpoint 0.8.1+9
+
+Written in this checkpoint:
+- Integrate Claude's AR page, USDZ exporter, USD geometry validation and AR site workflow from claude/ar-preview-web (f15d008) into the Codex branch. The page selects sofa/chair by SKU and rejects unknown products. No changes to Claude's branch or main.
+- Bundle both USDZ files in the mobile build. Add iOS native AR Quick Look via ProductARPlugin with content scaling disabled. Android camera AR still needs a published HTTPS preview URL. RoomPlan remains the separate LiDAR scan bridge.
+- Fix ModelAsset.Load's static/instance compiler error. Add a pinned PICO Integration SDK dependency, generated Unity scene and ARM64 development APK build entry point, Build-Headset.ps1.
+- Add Start-LinkedDemo.ps1: generates models, starts the local service, discovers an authorized USB device, installs an available APK, verifies ADB reverse, obtains a one-time pairing code and launches the headset. No fixed serial or Downloads dependency.
+- Add staff room 3D orbit view using the exact same published model triangles, including cutaway walls/windows. Editing remains in the measured plan.
+- Restarting the local service now requires a fresh headset ACK. Support Arabic phone digits. Phone-to-showroom replacement reviews the current revision before sending.
+- CI now checks the staff browser workflow and exports real Flutter/widget screenshots alongside the APK/IPA.
+
+Validation here:
+- 18 Python protocol/storage/HTTP tests passed on Linux, including actual loopback HTTP.
+- Both USDZ files opened with usd-core, all materials bound, dimensions and floor contact verified: sofa 2.10 x 1.00 x 1.03 m (X,Y,Z), chair 0.84 x 0.94 x 0.95 m.
+- JavaScript syntax and Python compilation passed.
+- Local browser launch blocked by executor AF_UNIX socket permissions. Browser test is mandatory in CI, not counted as passed here.
+- Flutter/Xcode/Unity/PowerShell runtimes are not installed in this executor. Mobile CI is pending for this commit. The new Unity build is not yet compiled in the real Unity Editor.
+- Untested on device: native Quick Look, RoomPlan, all new Flutter changes and PICO runtime.
+
+Still open:
+- Embed full-screen Unity in the phone app. Current phone room renderer is Flutter, not embedded Unity.
+- Run the new Unity project in licensed Unity 6000.6.8f1 with Android support, then test on Abbas's PICO. The local USB launcher is source-tested only until Windows validation.
+- Real fabric/textured production models, CAD approval, full catalogue coverage, live stock/checkout APIs and account systems.
+- HTTPS hosting for Android/web AR and company signing/distribution. No release published and no main merge.
+- The local static GLB importer supports solid materials only and rejects textured/animated/required-extension assets.
+
+Next: inspect CI on this checkpoint, repair failures, update this entry with the exact run and verified artifacts. Claude should independently review the integrated changes before Abbas merges.
+
+---
+
+
 ## 2026-11-11 · Codex · branch codex/unified-room-v08 · review checkpoint
 
 Status: work in progress. This checkpoint is uploaded for review and is not a release-readiness claim.

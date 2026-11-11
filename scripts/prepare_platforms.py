@@ -52,6 +52,11 @@ elif target == "ios":
             raise SystemExit("Unknown Flutter AppDelegate template. Review native plugin registration.")
         source.write_text(text, encoding="utf-8")
     shutil.copyfile(root / "native/ios/RoomScanPlugin.swift", ios / "RoomScanPlugin.swift")
+    shutil.copyfile(root / "native/ios/ProductARPlugin.swift", ios / "ProductARPlugin.swift")
+    if "ProductARPlugin.register" not in text:
+        text = text.replace("RoomScanPlugin.register(with: registrar)",
+                            "RoomScanPlugin.register(with: registrar)\n      ProductARPlugin.register(with: registrar)")
+        source.write_text(text, encoding="utf-8")
     info = ios / "Info.plist"
     with info.open("rb") as file:
         value = plistlib.load(file)

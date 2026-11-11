@@ -45,6 +45,8 @@ class ShowroomStore:
         raw = self.db.execute("SELECT value FROM settings WHERE key='snapshot'").fetchone()
         if raw:
             self.state = json.loads(raw["value"])
+            # A previous process's ACK does not establish a live device connection.
+            self.state["appliedRevision"] = 0
         else:
             self.state = {**validate_room(initial_room(), self.products), "sessionId": str(uuid.uuid4()),
                           "revision": 1, "appliedRevision": 0}
@@ -235,6 +237,7 @@ class ShowroomStore:
             raise ValidationError("Enter the customer name")
         if not isinstance(phone, str):
             raise ValidationError("Enter a valid phone number")
+        phone = phone.translate(str.maketrans("٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹", "01234567890123456789"))
         phone = re.sub(r"[\s()-]", "", phone.strip())
         if not re.fullmatch(r"\+?[0-9]{8,15}", phone):
             raise ValidationError("Phone number must have 8 to 15 digits")
@@ -335,10 +338,10 @@ class Handler(BaseHTTPRequestHandler):
         url = urlsplit(self.path)
         path = url.path
         if path == "/api/health":
-            return self.send(dict(ok=True, version="0.8.0"))
+            return self.send(dict(ok=True, application="almutlaq-showroom", protocol=2, version="0.8.1"))
         if path == "/api/bootstrap":
             return self.send(dict(csrf=self.server.store.csrf, localOnly=True), cookie=True)
-        static = {"/": "staff.html", "/staff.js": "staff.js", "/staff.css": "staff.css"}
+        static = {"/": "staff.html", "/staff.js": "staff.js", "/room-3d.js": "room-3d.js", "/staff.css": "staff.css"}
         if path in static:
             file = ROOT / static[path]
             mime = "text/html; charset=utf-8" if path == "/" else (

@@ -78,11 +78,13 @@ class RoomLinkClient {
     await preferences.setString('showroom-token', value['token'] as String);
   }
 
-  Future<Map<String, dynamic>> send(RoomDocument room) async {
-    final current = await request('/api/state');
+  Future<Map<String, dynamic>> send(
+    RoomDocument room, {
+    required int expectedRevision,
+  }) async {
     return request(
       '/api/state',
-      body: {...room.toWire(), 'expectedRevision': current['revision']},
+      body: {...room.toWire(), 'expectedRevision': expectedRevision},
     );
   }
 
@@ -203,7 +205,25 @@ class _RoomLinkPanelState extends State<RoomLinkPanel> {
                   onPressed: busy
                       ? null
                       : () => perform(() async {
-                          final value = await client.send(widget.document());
+                          final current = await client.request('/api/state');
+                          if (!mounted) return;
+                          final revision = current['revision'] as int;
+                          final replace = await showDialog<bool>(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: Text(t('إرسال التصميم للمعرض', 'Send design to showroom')),
+                              content: Text(t(
+                                'بيستبدل تصميم الجوال الغرفة المفتوحة في المعرض، الإصدار $revision. تصميمك المحفوظ يظل موجود.',
+                                'Your phone design will replace showroom revision $revision. Your saved layout is retained.',
+                              )),
+                              actions: [
+                                TextButton(onPressed: () => Navigator.pop(context, false), child: Text(t('إلغاء', 'Cancel'))),
+                                FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(t('إرسال التصميم', 'Send design'))),
+                              ],
+                            ),
+                          );
+                          if (replace != true || !mounted) return;
+                          final value = await client.send(widget.document(), expectedRevision: revision);
                           if (mounted)
                             setState(
                               () => status = t(

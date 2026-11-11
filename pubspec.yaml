@@ -1,7 +1,7 @@
 name: london_showroom
 description: Native furniture shopping and measured room planning for The Factory and CityW.
 publish_to: none
-version: 0.8.0+8
+version: 0.8.1+9
 environment:
   sdk: ^3.8.0
 dependencies:

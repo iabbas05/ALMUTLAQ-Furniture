@@ -106,6 +106,18 @@ class StoreTests(unittest.TestCase):
         self.assertEqual(self.store.snapshot(), current)
         self.assertEqual(self.store.last_ack, 0)
 
+    def test_restart_requires_a_fresh_device_ack(self):
+        state = self.store.snapshot()
+        self.store.acknowledge(dict(sessionId=state["sessionId"], revision=state["revision"]))
+        self.store.close()
+        self.store = ShowroomStore(self.temp.name)
+        self.assertEqual(self.store.snapshot()["revision"], state["revision"])
+        self.assertEqual(self.store.snapshot()["appliedRevision"], 0)
+
+    def test_arabic_phone_digits_find_the_saved_design(self):
+        self.store.save_customer(dict(name="TEST CUSTOMER", phone="٠٠٠٠٠٠٠٠", consent=True))
+        self.assertEqual(len(self.store.customers("00000000")), 1)
+
     def test_glb_import_and_reject_stretched_dimensions(self):
         blob = (ROOT.parent / "assets/london-10_14_3.glb").read_bytes()
         mesh = decode_glb(blob, dict(width=2.1, depth=1.03, height=1))

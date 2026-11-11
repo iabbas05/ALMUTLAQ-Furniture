@@ -33,9 +33,26 @@ jobs:
           python tools/generate_demo_models.py --output generated-models
           mkdir -p assets server/models
           cp generated-models/*.glb assets/
+          python3 ar-preview/generate-usdz.py generated-models
+          cp generated-models/*.usdz assets/
           cp generated-models/*.mesh.json server/models/
+      - name: Generate and validate iOS product previews
+        run: |
+          python ar-preview/generate-usdz.py generated-models
+          pip install --quiet usd-core
+          python ar-preview/check-usdz.py generated-models
       - name: Test room protocol, storage, pairing, publishing and HTTP boundaries
         run: python -m unittest discover -s server -p test_showroom.py -v
+      - name: Test staff panel in a browser
+        run: |
+          pip install --quiet playwright
+          python -m playwright install --with-deps chromium
+          python qa/check_staff.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Almutlaq-Staff-Previews
+          path: build/staff-preview/
+          if-no-files-found: error
       - uses: actions/upload-artifact@v4
         with:
           name: Almutlaq-Dimensioned-Demo-Models
@@ -66,13 +83,21 @@ jobs:
           python3 tools/generate_demo_models.py --output generated-models
           mkdir -p assets
           cp generated-models/*.glb assets/
+          python3 ar-preview/generate-usdz.py generated-models
+          cp generated-models/*.usdz assets/
           font_base='https://raw.githubusercontent.com/google/fonts/main/ofl/notosansarabic'
           curl --fail --silent --show-error --location --retry 3 "$font_base/NotoSansArabic%5Bwdth%2Cwght%5D.ttf" --output assets/NotoSansArabic.ttf
           curl --fail --silent --show-error --location --retry 3 "$font_base/OFL.txt" --output assets/NotoSansArabic-OFL.txt
           test -s assets/NotoSansArabic.ttf
           python3 scripts/fetch_demo_photos.py
+      - run: dart format lib/product_ar.dart
       - run: flutter analyze lib test
       - run: flutter test
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Almutlaq-App-Screenshots
+          path: build/preview/
+          if-no-files-found: error
       - run: flutter build apk --debug --dart-define="SHOWROOM_AR_URL=$SHOWROOM_AR_URL"
       - uses: actions/upload-artifact@v4
         with:
@@ -94,18 +119,21 @@ jobs:
         run: |
           flutter create --no-pub --platforms ios --org com.showroomxr --project-name london_showroom .
           python3 scripts/prepare_platforms.py ios
-          ruby -rxcodeproj -e 'p = Xcodeproj::Project.open("ios/Runner.xcodeproj"); g = p.main_group["Runner"]; f = g.files.find { |x| x.path == "RoomScanPlugin.swift" } || g.new_file("RoomScanPlugin.swift"); t = p.targets.find { |x| x.name == "Runner" }; t.source_build_phase.add_file_reference(f) unless t.source_build_phase.files_references.include?(f); p.save'
+          ruby -rxcodeproj -e 'p = Xcodeproj::Project.open("ios/Runner.xcodeproj"); g = p.main_group["Runner"]; t = p.targets.find { |x| x.name == "Runner" }; %w[RoomScanPlugin.swift ProductARPlugin.swift].each { |name| f = g.files.find { |x| x.path == name } || g.new_file(name); t.source_build_phase.add_file_reference(f) unless t.source_build_phase.files_references.include?(f) }; p.save'
           flutter pub get
       - name: Generate model and Arabic font assets
         run: |
           python3 tools/generate_demo_models.py --output generated-models
           mkdir -p assets
           cp generated-models/*.glb assets/
+          python3 ar-preview/generate-usdz.py generated-models
+          cp generated-models/*.usdz assets/
           font_base='https://raw.githubusercontent.com/google/fonts/main/ofl/notosansarabic'
           curl --fail --silent --show-error --location --retry 3 "$font_base/NotoSansArabic%5Bwdth%2Cwght%5D.ttf" --output assets/NotoSansArabic.ttf
           curl --fail --silent --show-error --location --retry 3 "$font_base/OFL.txt" --output assets/NotoSansArabic-OFL.txt
           test -s assets/NotoSansArabic.ttf
           python3 scripts/fetch_demo_photos.py
+      - run: dart format lib/product_ar.dart
       - run: flutter analyze lib test
       - name: Build and package unsigned IPA
         run: |

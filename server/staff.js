@@ -2,6 +2,7 @@
 const $ = id => document.getElementById(id);
 let state, catalogue = [], categories = [], csrf, active = 0, drag = false, scale = 1, origin = {x:0,y:0};
 const canvas = $('plan'), ctx = canvas.getContext('2d');
+const roomPreview = new MeasuredRoomPreview($('room-3d'), path => api(path));
 const copy = value => JSON.parse(JSON.stringify(value));
 function notify(text, error = false) { $('message').textContent = text; $('message').className = error ? 'error' : ''; }
 async function api(path, data, options = {}) {
@@ -116,7 +117,9 @@ function render() {
     const text=document.createElement('span');text.textContent=(o.kind==='window'?'دريشة':'باب')+' · '+o.width+' م';row.append(text,button('حذف',async()=>{const next=copy(state);next.openings.splice(i,1);await send(next);},'subtle'));return row;
   }));
   draw();
+  if ($('room-preview').open) roomPreview.update(state, catalogue).catch(e=>notify(e.message,true));
 }
+$('room-preview').addEventListener('toggle',()=>{if($('room-preview').open&&state)roomPreview.update(state,catalogue).catch(e=>notify(e.message,true));});
 function selectProduct(id){
   const p=catalogue.find(p=>p.id===id);if(!p)return;
   for(const [key,value] of Object.entries({id:p.id,name:p.name,arabic:p.arabic,width:p.dimensions.width,depth:p.dimensions.depth,height:p.dimensions.height}))$('product-'+key).value=value;

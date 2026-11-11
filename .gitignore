@@ -6,6 +6,9 @@ pubspec.lock
 /ios/
 generated-models/
 assets/*.glb
+assets/*.usdz
+builds/
+unity/Assets/Resources/Models/
 assets/*.ttf
 assets/*-OFL.txt
 server/data/

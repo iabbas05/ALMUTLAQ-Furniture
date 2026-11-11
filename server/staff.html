@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ar" dir="rtl">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>المطلق، لوحة تجربة الغرفة</title><link rel="stylesheet" href="/staff.css"><script defer src="/staff.js"></script></head>
+<title>المطلق، لوحة تجربة الغرفة</title><link rel="stylesheet" href="/staff.css"><script defer src="/room-3d.js"></script><script defer src="/staff.js"></script></head>
 <body>
 <header><div><p class="eyebrow">The Factory · CityW</p><h1>تجربة الغرفة</h1></div>
 <div class="status" role="status"><span id="connection">جاري الاتصال</span><small id="revision"></small></div></header>
@@ -16,6 +16,9 @@
 <div class="workspace">
 <div class="scene"><div class="section-heading"><h2>رتّب الأثاث بمقاسه</h2><span class="muted">اسحب القطعة لتغيّر مكانها</span></div>
 <canvas id="plan" width="900" height="900" tabindex="0" aria-label="مخطط الغرفة، استخدم الحقول لتعديل موضع القطعة"></canvas>
+<details id="room-preview"><summary>معاينة الغرفة ثلاثية الأبعاد</summary>
+<canvas id="room-3d" width="1000" height="720" aria-label="مجسمات الغرفة بمقاساتها الفعلية"></canvas>
+<p class="caption">اسحب لتدوير زاوية العرض، واستخدم عجلة الماوس للتقريب. تعديل القطع من المخطط فوق.</p></details>
 <p class="caption">العرض من اليسار لليمين، والعمق من أعلى المخطط لأسفله. كل القياسات بالمتر.</p>
 <div class="toolbar"><select id="pieces" aria-label="القطعة المختارة"></select>
 <button type="button" id="rotate">تدوير ١٥°</button><button type="button" id="remove" class="subtle">حذف القطعة</button></div>
@@ -47,7 +50,7 @@
 </aside></div>
 <form id="save-customer" class="panel customer-save"><div><p class="eyebrow">احتفظ بالتجربة للزيارة الياية</p><h2>احفظ تصميم العميل</h2></div>
 <div class="fields"><label>اسم العميل<input id="customer-name" autocomplete="name" minlength="2" maxlength="120" required></label>
-<label>رقم التلفون<input id="customer-phone" dir="ltr" type="tel" autocomplete="tel" pattern="\+?[0-9 ()-]{8,24}" required></label></div>
+<label>رقم التلفون<input id="customer-phone" dir="ltr" type="tel" autocomplete="tel" required maxlength="24"></label></div>
 <label class="check"><input id="customer-consent" type="checkbox" required>العميل موافق نحفظ اسمه ورقمه وتصميمه للرجوع له</label>
 <button type="submit" class="primary">حفظ التجربة</button><p class="muted small">الحفظ على كمبيوتر المعرض. الاسم والرقم ما ينرسلون للنظارة.</p></form>
 </section>
