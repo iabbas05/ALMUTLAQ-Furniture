@@ -1,5 +1,13 @@
 # USB showroom demo
 
+## Build from an already-open Unity Editor
+
+No connected headset is required to build. Open this repository's `unity/` project with Unity 6000.6.8f1 and wait for package import and compilation. In File > Build Profiles select Android and switch the active platform. Use Almutlaq > Test and build PICO APK.
+
+The menu offers to save modified scenes, runs only Almutlaq.Showroom.Tests in Edit Mode, writes builds/unity-editor-tests.xml, and builds only after at least one test passes with no failures. It writes a fresh pending APK before promoting it to builds/ShowroomVR-Linked.apk. The existing APK survives a failed build. The menu is a new unverified Editor integration until run in a working licensed Editor; runtime-source compilation does not validate it.
+
+This path uses the Editor already open on the desktop rather than launching another batch-mode process. It still requires a working Unity licence, resolved PICO packages and Android support. If model resources are missing, run Build-Headset.ps1 to generate them before opening the project. No auto-build occurs just by opening the project.
+
 ## First device run: actions at the Windows desktop
 
 The automated session crashed in Unity licensing IPC/Burst and Mono socket startup, and could not start the ADB daemon. This does not prove that the installed licence is invalid or that the headset is disconnected. Complete this first run from your normal Windows desktop.

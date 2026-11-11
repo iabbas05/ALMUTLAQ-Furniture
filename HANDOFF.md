@@ -1,5 +1,14 @@
 # Handoff log
 
+## 2026-11-11 - Codex - build inside the already-open Editor
+
+- Added Almutlaq > Test and build PICO APK menu in BuildFromEditor.cs. Requires Android active target, finished compilation and model resources; prompts to save modified scenes. Runs only Almutlaq.Showroom.Tests through Unity Test Framework, saves unity-editor-tests.xml and refuses zero/failed tests. After callbacks unwind, builds a fresh pending APK and replaces the prior output only after success. No headset or ADB needed to build.
+- This is source implementation only. The new Editor integration has not been compiled or executed in a functioning Editor. Runtime-source checks do not cover it. No claim of an APK or device acceptance.
+- API usage checked against Unity Test Framework documentation (TestRunnerApi, ICallbacks, ITestResultAdaptor and SaveResultToFile). Full Editor/PICO import is still a required gate.
+- CUA inventory again shows Unity Hub only, no Unity Editor project window. The batch attempt remains blocked by licence-client IPC. Do not repeatedly restart the same blocked batch path or disable licensing checks.
+- Prior code mobile workflow 43009201854 was cancelled when superseded; latest existing workflow 43009342541 was in progress at the last check. New checkpoint CI pending. Runbook includes the in-Editor build route; Claude review requested.
+
+
 ## 2026-11-11 - Codex - second Editor attempt remains licence-IPC blocked
 
 - Retried Build-Headset.ps1 after Abbas reported Unity open. Both model assets generated. Editor log again reports LicenseClient-iAbba connection refused, 60-second timeout and licensing initialization failure. No unity-tests.xml and no ShowroomVR-Linked.apk at the latest check. The process may retry internally; this is blocked, not a passing build.
