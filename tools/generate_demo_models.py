@@ -38,7 +38,9 @@ def rounded_box(size, radius):
                                    else [p, p+8, p+1, p, p+7, p+8])
     return positions, normals, indices
 
-def parts(width, depth, height, seats):
+def parts(width, depth, height, seats, style="london"):
+    if style == "square":
+        return square_parts(width, depth, height, seats)
     arm = .24 if seats == 3 else .14
     inside = width - 2*arm
     seat_width = inside/seats
@@ -56,13 +58,39 @@ def parts(width, depth, height, seats):
     ]
     return parts
 
-MATERIALS = [
-    ("Ivory body", [.73, .69, .62, 1], .93),
-    ("Ivory cushions", [.83, .79, .71, 1], .96),
-    ("Recessed feet", [.07, .05, .035, 1], .74),
-]
+def square_parts(width, depth, height, seats):
+    """Low square-arm sofa on visible wooden legs (CityW Warm Beige style)."""
+    arm, legs = .17, .10
+    inside = width - 2*arm
+    seat_width = inside/seats
+    return [
+        ("Upholstered base", (0, legs + .14, 0), (width, .28, depth), .02, 0),
+        ("Back frame", (0, (legs + height)/2 + .06, depth/2-.09), (width, height - legs - .12, .18), .02, 0),
+        *[("Square arm", (x, legs + (height - .16 - legs)/2, -.0), (arm, height - .16 - legs, depth), .02, 0)
+          for x in (-(width-arm)/2, (width-arm)/2)],
+        *[("Seat cushion", (-inside/2 + seat_width*(i+.5), legs + .34, -.08),
+           (seat_width-.012, .12, depth-.34), .03, 1) for i in range(seats)],
+        *[("Back cushion", (-inside/2 + seat_width*(i+.5), height-.20, depth/2-.27),
+           (seat_width-.018, .40, .20), .05, 1) for i in range(seats)],
+        *[("Wooden leg", (x, legs/2, z), (.05, legs, .05), .006, 2)
+          for x in (-width/2+.08, width/2-.08) for z in (-depth/2+.08, depth/2-.08)],
+    ]
 
-def build(output, stem, width, depth, height, seats):
+PALETTES = {
+    "london": [
+        ("Ivory body", [.73, .69, .62, 1], .93),
+        ("Ivory cushions", [.83, .79, .71, 1], .96),
+        ("Recessed feet", [.07, .05, .035, 1], .74),
+    ],
+    "warm-beige": [
+        ("Warm beige woven body", [.50, .40, .29, 1], .95),
+        ("Warm beige woven cushions", [.58, .47, .35, 1], .97),
+        ("Solid wood legs", [.22, .12, .06, 1], .62),
+    ],
+}
+
+def build(output, stem, width, depth, height, seats, style="london", palette="london", sku=None):
+    materials_in_use = PALETTES[palette]
     data, views, accessors, meshes, nodes, runtime_parts, world = bytearray(), [], [], [], [], [], []
     def accessor(values, code, kind, target, low=None, high=None):
         while len(data) % 4:
@@ -77,7 +105,7 @@ def build(output, stem, width, depth, height, seats):
             entry.update(min=low, max=high)
         accessors.append(entry)
         return len(accessors)-1
-    for name, centre, size, radius, material in parts(width, depth, height, seats):
+    for name, centre, size, radius, material in parts(width, depth, height, seats, style):
         positions, normals, indices = rounded_box(size, radius)
         translated = [[p[i] + centre[i] for i in range(3)] for p in positions]
         world.extend(translated)
@@ -93,14 +121,14 @@ def build(output, stem, width, depth, height, seats):
         triangles = [n for i in range(0, len(indices), 3) for n in (indices[i], indices[i+2], indices[i+1])]
         runtime_parts.append(dict(name=name, vertices=[v for p in translated for v in (p[0], p[1], -p[2])],
             normals=[v for p in normals for v in (p[0], p[1], -p[2])], triangles=triangles,
-            color=MATERIALS[material][1], roughness=MATERIALS[material][2]))
+            color=materials_in_use[material][1], roughness=materials_in_use[material][2]))
     bounds = [max(p[i] for p in world) - min(p[i] for p in world) for i in range(3)]
     assert all(abs(a-b) < 1e-6 for a,b in zip(bounds, (width, height, depth))), bounds
     assert abs(min(p[1] for p in world)) < 1e-6
     while len(data) % 4:
         data.append(0)
     materials = [{"name": n, "pbrMetallicRoughness": dict(baseColorFactor=c, metallicFactor=0, roughnessFactor=r)}
-                 for n,c,r in MATERIALS]
+                 for n,c,r in materials_in_use]
     model = dict(asset={"version": "2.0", "generator": "Almutlaq reconstructed demo, visual approval required"},
         scene=0, scenes=[{"nodes": list(range(len(nodes)))}], nodes=nodes, meshes=meshes, materials=materials,
         buffers=[{"byteLength": len(data)}], bufferViews=views, accessors=accessors)
@@ -115,9 +143,12 @@ def build(output, stem, width, depth, height, seats):
                    visuallyApproved=False, parts=runtime_parts)
     runtime_bytes = json.dumps(runtime, separators=(",", ":"), allow_nan=False).encode()
     (output / f"{stem}.mesh.json").write_bytes(runtime_bytes)
-    return dict(file=f"{stem}.glb", sha256=hashlib.sha256(glb).hexdigest(), width=width, depth=depth,
+    result = dict(file=f"{stem}.glb", sha256=hashlib.sha256(glb).hexdigest(), width=width, depth=depth,
                 height=height, triangles=sum(len(p["triangles"])//3 for p in runtime_parts),
                 runtimeFile=f"{stem}.mesh.json", runtimeSha256=hashlib.sha256(runtime_bytes).hexdigest())
+    if sku:
+        result["sku"] = sku
+    return result
 
 def main():
     parser = argparse.ArgumentParser()
@@ -126,6 +157,8 @@ def main():
     results = [
         build(args.output, "london-10_14_3", 2.10, 1.03, 1.00, 3),
         build(args.output, "london-6_14_5", .84, .95, .94, 1),
+        # Phone AR only (not in the room planner or headset yet). Size from the CityW product page.
+        build(args.output, "cityw-23_88_1", 2.30, 1.01, .78, 3, style="square", palette="warm-beige", sku="23_88_1"),
     ]
     (args.output / "models-manifest.json").write_text(json.dumps(results, indent=2), encoding="utf-8")
     print(json.dumps(results, indent=2))

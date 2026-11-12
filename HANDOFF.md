@@ -1,5 +1,31 @@
 # Handoff log
 
+## 2026-11-12 · Claude · branch `claude/app-ar-review` (stacked on `codex/unified-room-v08`)
+
+Abbas asked Claude this session to fix the iPhone build, extend AR, redesign the app (including the room planner) and review the code, and explicitly allowed Claude to change the Flutter app for this work. Codex: please review.
+
+**Done**
+- iPhone build: CI already builds an unsigned IPA on `main` and PR #4. Added optional signing to `build-mobile.yml`: with secrets `IOS_CERTIFICATE_P12_BASE64`, `IOS_CERTIFICATE_PASSWORD`, `IOS_PROVISIONING_PROFILE_BASE64` it exports a signed IPA (method taken from the profile) as Almutlaq-Signed-IPA. Skipped when the secrets are absent. Steps in `BUILD.md`.
+- AR: added the CityW Warm Beige three-seater `23_88_1` (230 × 101 × 78 cm from the product page) as a square-arm, wooden-leg model in `tools/generate_demo_models.py`, file stem `cityw-23_88_1`. London outputs are byte-identical to before. `lib/product_ar.dart` now holds the one list of phone-AR products; the iOS plugin opens the bundled USDZ path Dart sends (validated to `assets/<name>.usdz`) instead of a hard-coded SKU list. The web page serves the new product. It is phone 3D/AR only: not added to `furnitureSizes`, the room planner, the staff service or Unity.
+- Design: new storefront (store switch, room banner, search with a filter sheet, product cards with 3D badge), product page (gallery with dots and full-screen zoom, dimension tiles, "See it in your space" card, fixed Add to bag bar), bag across both stores with thumbnails, empty states, theme. Room planner regrouped into sections (room size, view, selected piece, add furniture, doors and windows, my designs, showroom); rotate both ways; saved designs listed by name and deletable.
+- Fixed: the bag only listed products from the currently selected store.
+
+**Tested**
+- Local Flutter 3.47.8: `flutter analyze lib test` clean, 16 tests pass (new: every AR model matches its published size; AR-only products stay out of the planner; product page and bag render). 20 server tests pass. All three USDZ files pass `check-usdz.py`.
+- Untested on device. Signing steps untested until real signing material is added. Store photos could not be fetched in this environment, so screenshots used placeholders.
+
+**Review notes, not fixed**
+1. `dart format lib test` in CI rewrites files but never fails; add `--set-exit-if-changed` (would reformat `catalogue.dart` and `room_link.dart`).
+2. The Arabic font is downloaded from the `main` branch of google/fonts at build time; pin a commit for reproducible builds.
+3. Live catalogue sizes show WooCommerce length × width × height with "(source units)", a different order and unit label from the sample W × D × H in cm.
+4. `room_drawing.dart` decides seat count by SKU (`6_14_5` → 1); `LondonMesh` reads only float positions and 16-bit indices without textures, so photo-generated textured models need conversion first.
+5. Protocol job runs `generate-usdz.py` twice.
+6. `main` still has broken Arabic text (replacement characters) in `lib/main.dart` and `ar-preview/index.html`; merging PR #4 fixes it.
+
+**Next**
+- Codex: review this branch; decide whether `23_88_1` should join the planner and headset.
+- Abbas: add iOS signing secrets if an installable IPA is wanted; supply approved photos/CAD.
+
 ## 2026-11-11 - Codex - real package import and PICO EntityId compatibility
 
 - User reported PICO SpatialAudio CS0619 at SceneGeometry.cs:414 after opening the project. The old Integration SDK's baked filename uses GetInstanceID, removed in Unity 6.6.

@@ -18,14 +18,17 @@ final class ProductARPlugin: NSObject, FlutterPlugin, QLPreviewControllerDataSou
 
     func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         guard call.method == "preview" else { result(FlutterMethodNotImplemented); return }
+        // Dart sends the bundled USDZ path for products listed in lib/product_ar.dart.
+        // Accept only a plain file name inside assets/, never a path that leaves it.
         guard let args = call.arguments as? [String: Any],
-              let sku = args["sku"] as? String, ["10_14_3", "6_14_5"].contains(sku) else {
+              let asset = args["asset"] as? String,
+              asset.range(of: "^assets/[a-z0-9_-]+\\.usdz$", options: .regularExpression) != nil else {
             result(FlutterError(code: "unsupported_product", message: "No approved preview for this product", details: nil)); return
         }
         guard !active else {
             result(FlutterError(code: "busy", message: "Close the current preview first", details: nil)); return
         }
-        let key = registrar.lookupKey(forAsset: "assets/london-\(sku).usdz")
+        let key = registrar.lookupKey(forAsset: asset)
         guard let path = Bundle.main.path(forResource: key, ofType: nil) else {
             result(FlutterError(code: "missing_model", message: "Bundled model missing", details: nil)); return
         }

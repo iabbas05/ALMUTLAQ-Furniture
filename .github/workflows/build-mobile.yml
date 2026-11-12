@@ -123,6 +123,11 @@ jobs:
     runs-on: macos-latest
     env:
       SHOWROOM_AR_URL: ${{ inputs.ar_url }}
+      # Optional. When all three secrets are set, the job also exports a signed IPA.
+      # See BUILD.md "Signed iPhone build". Never commit these values.
+      IOS_CERTIFICATE_P12_BASE64: ${{ secrets.IOS_CERTIFICATE_P12_BASE64 }}
+      IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+      IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -162,11 +167,77 @@ jobs:
           name: Almutlaq-Unsigned-IPA
           path: build/unsigned/Almutlaq-Unsigned.ipa
           if-no-files-found: error
+      - name: Install signing certificate and profile
+        id: signing
+        if: env.IOS_CERTIFICATE_P12_BASE64 != '' && env.IOS_PROVISIONING_PROFILE_BASE64 != ''
+        run: |
+          set -euo pipefail
+          keychain="$RUNNER_TEMP/signing.keychain-db"
+          keychain_password="$(uuidgen)"
+          printf '%s' "$IOS_CERTIFICATE_P12_BASE64" | base64 --decode > "$RUNNER_TEMP/signing.p12"
+          printf '%s' "$IOS_PROVISIONING_PROFILE_BASE64" | base64 --decode > "$RUNNER_TEMP/signing.mobileprovision"
+          security create-keychain -p "$keychain_password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$keychain_password" "$keychain"
+          security import "$RUNNER_TEMP/signing.p12" -P "$IOS_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$keychain"
+          security set-key-partition-list -S apple-tool:,apple: -k "$keychain_password" "$keychain" > /dev/null
+          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+          identity="$(security find-identity -v -p codesigning "$keychain" | sed -n 's/.*"\(.*\)".*/\1/p' | head -1)"
+          test -n "$identity" || { echo "No code-signing identity in the certificate"; exit 1; }
+          security cms -D -i "$RUNNER_TEMP/signing.mobileprovision" > "$RUNNER_TEMP/profile.plist"
+          plist() { /usr/libexec/PlistBuddy -c "Print :$1" "$RUNNER_TEMP/profile.plist" 2>/dev/null || true; }
+          uuid="$(plist UUID)"
+          team="$(plist 'TeamIdentifier:0')"
+          app_id="$(plist 'Entitlements:application-identifier')"
+          bundle_id="${app_id#*.}"
+          if [ "$bundle_id" = "*" ] || [ -z "$bundle_id" ]; then bundle_id="com.showroomxr.londonShowroom"; fi
+          if [ -n "$(plist ProvisionsAllDevices)" ]; then method=enterprise
+          elif [ -n "$(plist 'ProvisionedDevices:0')" ]; then method=release-testing
+          else method=app-store-connect; fi
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          cp "$RUNNER_TEMP/signing.mobileprovision" "$HOME/Library/MobileDevice/Provisioning Profiles/$uuid.mobileprovision"
+          IDENTITY="$identity" TEAM="$team" UUID="$uuid" BUNDLE="$bundle_id" ruby -rxcodeproj -e '
+            p = Xcodeproj::Project.open("ios/Runner.xcodeproj")
+            t = p.targets.find { |x| x.name == "Runner" }
+            t.build_configurations.select { |c| c.name == "Release" }.each do |c|
+              c.build_settings["CODE_SIGN_STYLE"] = "Manual"
+              c.build_settings["DEVELOPMENT_TEAM"] = ENV["TEAM"]
+              c.build_settings["CODE_SIGN_IDENTITY"] = ENV["IDENTITY"]
+              c.build_settings["PROVISIONING_PROFILE_SPECIFIER"] = ENV["UUID"]
+              c.build_settings["PRODUCT_BUNDLE_IDENTIFIER"] = ENV["BUNDLE"]
+            end
+            p.save'
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>$method</string>
+            <key>teamID</key><string>$team</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>provisioningProfiles</key><dict><key>$bundle_id</key><string>$uuid</string></dict>
+          </dict></plist>
+          PLIST
+          echo "Signing $bundle_id for team $team with $method profile"
+      - name: Build signed IPA
+        if: steps.signing.outcome == 'success'
+        run: |
+          set -o pipefail
+          flutter build ipa --release --export-options-plist="$RUNNER_TEMP/ExportOptions.plist" --dart-define="SHOWROOM_AR_URL=$SHOWROOM_AR_URL" 2>&1 | tee ios-signed-build.log
+          ls build/ios/ipa/*.ipa
+      - uses: actions/upload-artifact@v4
+        if: steps.signing.outcome == 'success'
+        with:
+          name: Almutlaq-Signed-IPA
+          path: build/ios/ipa/*.ipa
+          if-no-files-found: error
+      - name: Remove signing keychain
+        if: always() && steps.signing.outcome != 'skipped'
+        run: security delete-keychain "$RUNNER_TEMP/signing.keychain-db" || true
       - name: Upload iOS diagnostics on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: Almutlaq-iOS-Build-Log
-          path: ios-build.log
+          path: ios-*build.log
           if-no-files-found: ignore
 

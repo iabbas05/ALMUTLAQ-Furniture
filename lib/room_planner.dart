@@ -373,9 +373,9 @@ class RoomPlannerState extends State<RoomPlanner> {
     super.dispose();
   }
 
-  void message(String ar, String en) =>
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(tr(ar, en))));
+  void message(String ar, String en) => ScaffoldMessenger.of(
+    context,
+  ).showSnackBar(SnackBar(content: Text(tr(ar, en))));
 
   void updateRoom() {
     final w = centimetres(widthInput.text);
@@ -552,8 +552,106 @@ class RoomPlannerState extends State<RoomPlanner> {
     if (mounted) message('اننسخ مخطط التركيب', 'Installation layout copied.');
   }
 
+  String layoutTitle(String value, int index) {
+    try {
+      final name = (jsonDecode(value) as Map)['name'];
+      if (name is String && name.trim().isNotEmpty) return name;
+    } catch (_) {}
+    return tr('تصميم ${index + 1}', 'Design ${index + 1}');
+  }
+
+  Future<void> deleteLayout(String value) async {
+    final next = layouts.where((entry) => entry != value).toList();
+    await widget.preferences.setStringList('room-layouts-v1', next);
+    if (!mounted) return;
+    setState(() {
+      if (saved == value) saved = null;
+    });
+    message('انحذف التصميم', 'Design deleted.');
+  }
+
+  Future<void> copyDocument() async {
+    try {
+      await Clipboard.setData(ClipboardData(text: document.encode()));
+      if (mounted) {
+        message(
+          'تم نسخ ملف الغرفة. تقدر تلصقه في لوحة الموظف.',
+          'Room document copied. Paste it into the staff panel.',
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        message(
+          'راجع القطع والفتحات قبل التصدير.',
+          'Check furniture and openings before exporting.',
+        );
+      }
+    }
+  }
+
+  Widget section(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    String? subtitle,
+    Widget? action,
+    required List<Widget> children,
+  }) {
+    final theme = Theme.of(context);
+    return Card(
+      margin: const EdgeInsets.only(bottom: 14),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 20, color: theme.colorScheme.primary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(title, style: theme.textTheme.titleMedium),
+                ),
+                ?action,
+              ],
+            ),
+            if (subtitle != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(
+                  subtitle,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            const SizedBox(height: 12),
+            ...children,
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget clearance(BuildContext context, String side, double gap) {
+    final scheme = Theme.of(context).colorScheme;
+    final tight = gap < 60;
+    return Chip(
+      visualDensity: VisualDensity.compact,
+      side: BorderSide.none,
+      backgroundColor: tight
+          ? scheme.tertiaryContainer
+          : scheme.surfaceContainerHighest,
+      label: Text(
+        '$side ${dimension(math.max(0, gap))} $unit',
+        textDirection: widget.arabic ? TextDirection.rtl : TextDirection.ltr,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final item = active;
     final gaps = item?.margins(width, length);
     final outside = gaps?.any((g) => g < -0.0001) ?? false;
@@ -564,356 +662,470 @@ class RoomPlannerState extends State<RoomPlanner> {
         );
     final options = layouts;
     return ListView(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.fromLTRB(16, 18, 16, 32),
       children: [
         Text(
           tr('صمّم غرفتك', 'Design your room'),
-          style: Theme.of(context).textTheme.headlineMedium,
+          style: theme.textTheme.headlineMedium,
         ),
         Text(
           tr(
-            'قياسات حقيقية، وتصميم تحفظه وتكمل عليه.',
-            'Measured furniture, in a design you can save and revisit.',
+            'أدخل قياس غرفتك، رتّب القطع بمقاسها الحقيقي، واحفظ التصميم.',
+            'Enter your room size, arrange true-scale furniture and save the design.',
+          ),
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
           ),
         ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
+        const SizedBox(height: 16),
+        section(
+          context,
+          icon: Icons.straighten,
+          title: tr('قياس الغرفة', 'Room size'),
+          action: TextButton(
+            onPressed: () => setState(() {
+              metres = !metres;
+              updateFields();
+            }),
+            child: Text(metres ? tr('سم', 'cm') : tr('متر', 'm')),
+          ),
           children: [
-            IconButton(
-              tooltip: tr('تراجع', 'Undo'),
-              onPressed: undo.isEmpty ? null : () => stepBack(false),
-              icon: const Icon(Icons.undo),
-            ),
-            IconButton(
-              tooltip: tr('إعادة', 'Redo'),
-              onPressed: redo.isEmpty ? null : () => stepBack(true),
-              icon: const Icon(Icons.redo),
-            ),
-            if (RoomScan.offered)
-              OutlinedButton.icon(
-                onPressed: scanRoom,
-                icon: const Icon(Icons.document_scanner_outlined),
-                label: Text(tr('مسح الغرفة', 'Scan room')),
-              ),
-            ChoiceChip(
-              label: Text(tr('مخطط', 'Plan')),
-              selected: !perspective,
-              onSelected: (_) => setState(() => perspective = false),
-            ),
-            ChoiceChip(
-              label: Text(tr('منظور 3D', '3D view')),
-              selected: perspective,
-              onSelected: (_) => setState(() => perspective = true),
-            ),
-            TextButton(
-              onPressed: () => setState(() {
-                metres = !metres;
-                updateFields();
-              }),
-              child: Text(
-                metres
-                    ? tr('عرض بالسم', 'Show cm')
-                    : tr('عرض بالمتر', 'Show metres'),
-              ),
-            ),
-          ],
-        ),
-        Row(
-          children: [
-            for (final (controller, label) in [
-              (widthInput, tr('العرض', 'Width')),
-              (lengthInput, tr('الطول', 'Length')),
-              (heightInput, tr('الارتفاع', 'Height')),
-            ])
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsetsDirectional.only(end: 8),
-                  child: TextField(
-                    controller: controller,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    textDirection: TextDirection.ltr,
-                    decoration: InputDecoration(
-                      labelText: label,
-                      suffixText: unit,
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-        Align(
-          alignment: AlignmentDirectional.centerEnd,
-          child: TextButton(
-            onPressed: updateRoom,
-            child: Text(tr('تطبيق القياسات', 'Apply dimensions')),
-          ),
-        ),
-        if (perspective)
-          RoomOrbit(
-            width: width,
-            length: length,
-            height: height,
-            openings: openings,
-            pieces: pieces,
-            arabic: widget.arabic,
-          )
-        else
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final scale = math.min(
-                constraints.maxWidth / width,
-                295 / length,
-              );
-              return Center(
-                child: GestureDetector(
-                  onTapDown: (event) => pickPiece(event.localPosition, scale),
-                  onPanStart: (event) {
-                    pickPiece(event.localPosition, scale);
-                    if (active != null) remember();
-                  },
-                  onPanUpdate: item == null
-                      ? null
-                      : (event) {
-                          final piece = active!;
-                          modify(
-                            piece.move(
-                              (piece.x + event.delta.dx / scale)
-                                  .clamp(0, width)
-                                  .toDouble(),
-                              (piece.y + event.delta.dy / scale)
-                                  .clamp(0, length)
-                                  .toDouble(),
-                            ),
-                            record: false,
-                          );
-                        },
-                  child: CustomPaint(
-                    size: Size(width * scale, length * scale),
-                    painter: RoomDrawing(
-                      pieces,
-                      openings,
-                      selected,
-                      width,
-                      length,
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        Wrap(
-          spacing: 8,
-          children: [
-            TextButton.icon(
-              onPressed: () => editOpening(false),
-              icon: const Icon(Icons.add),
-              label: Text(tr('أضف باب', 'Add door')),
-            ),
-            TextButton.icon(
-              onPressed: () => editOpening(true),
-              icon: const Icon(Icons.add),
-              label: Text(tr('أضف دريشة', 'Add window')),
-            ),
-          ],
-        ),
-        for (var i = 0; i < openings.length; i++)
-          ListTile(
-            dense: true,
-            onTap: () => editOpening(openings[i].window, index: i),
-            title: Text(
-              openings[i].window ? tr('دريشة', 'Window') : tr('باب', 'Door'),
-            ),
-            subtitle: Text(wallLabel(openings[i].wall)),
-            trailing: IconButton(
-              icon: const Icon(Icons.close),
-              onPressed: () {
-                remember();
-                setState(() => openings.removeAt(i));
-              },
-            ),
-          ),
-        if (item != null) ...[
-          TextButton.icon(
-            onPressed: () => editPosition(item),
-            icon: const Icon(Icons.straighten),
-            label: Text(
-              tr('حدد المكان بالقياس', 'Set position by measurement'),
-            ),
-          ),
-          DropdownButton<int>(
-            isExpanded: true,
-            value: selected,
-            items: [
-              for (var i = 0; i < pieces.length; i++)
-                DropdownMenuItem(
-                  value: i,
-                  child: Text('${i + 1}. ${name(pieces[i].product)}'),
-                ),
-            ],
-            onChanged: (i) {
-              if (i != null) setState(() => selected = i);
-            },
-          ),
-          Wrap(
-            spacing: 8,
-            children: [
-              OutlinedButton(
-                onPressed: () => modify(item.turn()),
-                child: Text(tr('دوّر ١٥°', 'Rotate 15°')),
-              ),
-              OutlinedButton(
-                onPressed: () {
-                  remember();
-                  setState(() {
-                    pieces.removeAt(selected);
-                    selected = 0;
-                  });
-                },
-                child: Text(tr('احذف', 'Remove')),
-              ),
-            ],
-          ),
-          Text(
-            tr(
-              'بدّل القطعة في نفس المكان والزاوية',
-              'Swap in the same position and angle',
-            ),
-          ),
-          Wrap(
-            spacing: 8,
-            children: [
-              for (final p in furnitureSizes.where(
-                (p) => p.sku != item.product.sku,
-              ))
-                ActionChip(
-                  label: Text(name(p)),
-                  onPressed: () => modify(item.replace(p)),
-                ),
-            ],
-          ),
-          Text(
-            tr('مقاس القطعة', 'Product size') +
-                ' · ${item.product.width} × ${item.product.depth} × ${item.product.height} ${tr('سم', 'cm')}',
-          ),
-          if (outside && gaps != null)
-            Text(
-              tr(
-                'القطعة متجاوزة الجدار بـ ${dimension(-gaps.reduce(math.min))} $unit',
-                'Piece extends past a wall by ${dimension(-gaps.reduce(math.min))} $unit',
-              ),
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            )
-          else if (gaps != null)
-            Wrap(
-              spacing: 10,
+            Row(
               children: [
-                for (final (i, side) in [
-                  (0, tr('يسار', 'Left')),
-                  (1, tr('فوق', 'Top')),
-                  (2, tr('يمين', 'Right')),
-                  (3, tr('تحت', 'Bottom')),
+                for (final (index, controller, label) in [
+                  (0, widthInput, tr('العرض', 'Width')),
+                  (1, lengthInput, tr('الطول', 'Length')),
+                  (2, heightInput, tr('الارتفاع', 'Height')),
                 ])
-                  Text('$side ${dimension(math.max(0, gaps[i]))} $unit'),
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsetsDirectional.only(
+                        end: index == 2 ? 0 : 8,
+                      ),
+                      child: TextField(
+                        controller: controller,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        textDirection: TextDirection.ltr,
+                        onSubmitted: (_) => updateRoom(),
+                        decoration: InputDecoration(
+                          labelText: label,
+                          suffixText: unit,
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
-          if (collision)
-            Text(
-              tr('القطعة تتداخل مع قطعة ثانية', 'Piece overlaps another item'),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                if (RoomScan.offered)
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: scanRoom,
+                      icon: const Icon(Icons.document_scanner_outlined),
+                      label: Text(tr('مسح الغرفة', 'Scan room')),
+                    ),
+                  ),
+                if (RoomScan.offered) const SizedBox(width: 8),
+                Expanded(
+                  child: FilledButton.tonal(
+                    onPressed: updateRoom,
+                    child: Text(tr('تطبيق القياسات', 'Apply dimensions')),
+                  ),
+                ),
+              ],
             ),
-        ],
-        const SizedBox(height: 12),
-        Text(
-          tr('أثاث جاهز للمعاينة', 'Furniture ready to preview'),
-          style: Theme.of(context).textTheme.titleMedium,
+          ],
         ),
-        Text(
-          tr(
+        section(
+          context,
+          icon: perspective ? Icons.view_in_ar : Icons.grid_on,
+          title: tr('غرفتك', 'Your room'),
+          subtitle: '$width × $length × $height ${tr('سم', 'cm')}',
+          action: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                tooltip: tr('تراجع', 'Undo'),
+                onPressed: undo.isEmpty ? null : () => stepBack(false),
+                icon: const Icon(Icons.undo),
+              ),
+              IconButton(
+                tooltip: tr('إعادة', 'Redo'),
+                onPressed: redo.isEmpty ? null : () => stepBack(true),
+                icon: const Icon(Icons.redo),
+              ),
+            ],
+          ),
+          children: [
+            SegmentedButton<bool>(
+              showSelectedIcon: false,
+              segments: [
+                ButtonSegment(
+                  value: false,
+                  icon: const Icon(Icons.grid_on),
+                  label: Text(tr('مخطط', 'Plan')),
+                ),
+                ButtonSegment(
+                  value: true,
+                  icon: const Icon(Icons.view_in_ar),
+                  label: Text(tr('منظور 3D', '3D view')),
+                ),
+              ],
+              selected: {perspective},
+              onSelectionChanged: (value) =>
+                  setState(() => perspective = value.first),
+            ),
+            const SizedBox(height: 12),
+            if (perspective)
+              RoomOrbit(
+                width: width,
+                length: length,
+                height: height,
+                openings: openings,
+                pieces: pieces,
+                arabic: widget.arabic,
+              )
+            else ...[
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final scale = math.min(
+                    constraints.maxWidth / width,
+                    320 / length,
+                  );
+                  return Center(
+                    child: GestureDetector(
+                      onTapDown: (event) =>
+                          pickPiece(event.localPosition, scale),
+                      onPanStart: (event) {
+                        pickPiece(event.localPosition, scale);
+                        if (active != null) remember();
+                      },
+                      onPanUpdate: item == null
+                          ? null
+                          : (event) {
+                              final piece = active!;
+                              modify(
+                                piece.move(
+                                  (piece.x + event.delta.dx / scale)
+                                      .clamp(0, width)
+                                      .toDouble(),
+                                  (piece.y + event.delta.dy / scale)
+                                      .clamp(0, length)
+                                      .toDouble(),
+                                ),
+                                record: false,
+                              );
+                            },
+                      child: CustomPaint(
+                        size: Size(width * scale, length * scale),
+                        painter: RoomDrawing(
+                          pieces,
+                          openings,
+                          selected,
+                          width,
+                          length,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 8),
+              Text(
+                tr(
+                  'اضغط على قطعة لاختيارها، واسحبها لتحريكها.',
+                  'Tap a piece to select it, then drag to move it.',
+                ),
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodySmall,
+              ),
+            ],
+          ],
+        ),
+        if (item != null)
+          section(
+            context,
+            icon: Icons.chair_outlined,
+            title: tr('القطعة المختارة', 'Selected piece'),
+            subtitle:
+                '${name(item.product)} · ${item.product.width} × ${item.product.depth} × ${item.product.height} ${tr('سم', 'cm')} · ${item.angle}°',
+            children: [
+              if (pieces.length > 1)
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    for (var i = 0; i < pieces.length; i++)
+                      ChoiceChip(
+                        label: Text('${i + 1}. ${name(pieces[i].product)}'),
+                        selected: selected == i,
+                        onSelected: (_) => setState(() => selected = i),
+                      ),
+                  ],
+                ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () => modify(item.turn(-15)),
+                    icon: const Icon(Icons.rotate_left),
+                    label: Text(tr('١٥°', '15°')),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () => modify(item.turn()),
+                    icon: const Icon(Icons.rotate_right),
+                    label: Text(tr('دوّر ١٥°', 'Rotate 15°')),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () => editPosition(item),
+                    icon: const Icon(Icons.open_with),
+                    label: Text(tr('المكان بالقياس', 'Set position')),
+                  ),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: theme.colorScheme.error,
+                    ),
+                    onPressed: () {
+                      remember();
+                      setState(() {
+                        pieces.removeAt(selected);
+                        selected = 0;
+                      });
+                    },
+                    icon: const Icon(Icons.delete_outline),
+                    label: Text(tr('احذف', 'Remove')),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                tr('المسافة من الجدران', 'Clearance to walls'),
+                style: theme.textTheme.labelLarge,
+              ),
+              const SizedBox(height: 4),
+              if (outside && gaps != null)
+                Text(
+                  tr(
+                    'القطعة متجاوزة الجدار بـ ${dimension(-gaps.reduce(math.min))} $unit',
+                    'Piece extends past a wall by ${dimension(-gaps.reduce(math.min))} $unit',
+                  ),
+                  style: TextStyle(color: theme.colorScheme.error),
+                )
+              else if (gaps != null)
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: [
+                    for (final (i, side) in [
+                      (0, tr('يسار', 'Left')),
+                      (1, tr('فوق', 'Top')),
+                      (2, tr('يمين', 'Right')),
+                      (3, tr('تحت', 'Bottom')),
+                    ])
+                      clearance(context, side, gaps[i]),
+                  ],
+                ),
+              if (collision)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.warning_amber_rounded,
+                        size: 18,
+                        color: theme.colorScheme.error,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          tr(
+                            'القطعة تتداخل مع قطعة ثانية',
+                            'Piece overlaps another item',
+                          ),
+                          style: TextStyle(color: theme.colorScheme.error),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              if (furnitureSizes.any((p) => p.sku != item.product.sku)) ...[
+                const SizedBox(height: 12),
+                Text(
+                  tr(
+                    'بدّل القطعة في نفس المكان والزاوية',
+                    'Swap in the same position and angle',
+                  ),
+                  style: theme.textTheme.labelLarge,
+                ),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    for (final p in furnitureSizes.where(
+                      (p) => p.sku != item.product.sku,
+                    ))
+                      ActionChip(
+                        avatar: const Icon(Icons.swap_horiz, size: 18),
+                        label: Text(name(p)),
+                        onPressed: () => modify(item.replace(p)),
+                      ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        section(
+          context,
+          icon: Icons.add_home_outlined,
+          title: tr('أضف أثاث', 'Add furniture'),
+          subtitle: tr(
             'المجسمات معاد بناؤها بأبعاد الموقع، وتحتاج اعتماد الشكل والقماش من المصنع.',
             'Models are reconstructed to the website dimensions. Shape and fabric need manufacturer approval.',
           ),
-        ),
-        Wrap(
-          spacing: 8,
           children: [
             for (final p in furnitureSizes)
-              ActionChip(
-                label: Text(name(p)),
-                onPressed: () {
-                  final next = RoomPiece(p, width / 2, length / 2, 0);
-                  if (pieces.length >= 50 ||
-                      !next.fits(width, length, height)) {
-                    message(
-                      'القطعة ما تناسب الغرفة، أو وصلت حد القطع.',
-                      'This piece does not fit, or the item limit was reached.',
-                    );
-                    return;
-                  }
-                  remember();
-                  setState(() {
-                    pieces.add(next);
-                    selected = pieces.length - 1;
-                  });
-                },
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: CircleAvatar(
+                  backgroundColor: theme.colorScheme.secondaryContainer,
+                  child: Icon(
+                    p.width > 150
+                        ? Icons.weekend_outlined
+                        : Icons.chair_outlined,
+                    color: theme.colorScheme.onSecondaryContainer,
+                  ),
+                ),
+                title: Text(name(p)),
+                subtitle: Text(
+                  '${p.width} × ${p.depth} × ${p.height} ${tr('سم', 'cm')}',
+                  textDirection: TextDirection.ltr,
+                  textAlign: widget.arabic ? TextAlign.right : TextAlign.left,
+                ),
+                trailing: IconButton.filledTonal(
+                  tooltip: tr('أضف', 'Add'),
+                  onPressed: () => addProduct(p),
+                  icon: const Icon(Icons.add),
+                ),
               ),
           ],
         ),
-        Wrap(
-          spacing: 8,
+        section(
+          context,
+          icon: Icons.door_front_door_outlined,
+          title: tr('الأبواب والدرايش', 'Doors and windows'),
           children: [
-            FilledButton(
-              onPressed: save,
-              child: Text(tr('احفظ توزيع', 'Save layout')),
-            ),
-            OutlinedButton(
-              onPressed: copyPlan,
-              child: Text(tr('انسخ مخطط التركيب', 'Copy installation plan')),
+            for (var i = 0; i < openings.length; i++)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+                onTap: () => editOpening(openings[i].window, index: i),
+                leading: Icon(
+                  openings[i].window
+                      ? Icons.window_outlined
+                      : Icons.door_front_door_outlined,
+                ),
+                title: Text(
+                  openings[i].window
+                      ? tr('دريشة', 'Window')
+                      : tr('باب', 'Door'),
+                ),
+                subtitle: Text(
+                  '${wallLabel(openings[i].wall)} · ${dimension(openings[i].width)} $unit',
+                ),
+                trailing: IconButton(
+                  tooltip: tr('احذف', 'Remove'),
+                  icon: const Icon(Icons.close),
+                  onPressed: () {
+                    remember();
+                    setState(() => openings.removeAt(i));
+                  },
+                ),
+              ),
+            Wrap(
+              spacing: 8,
+              children: [
+                TextButton.icon(
+                  onPressed: () => editOpening(false),
+                  icon: const Icon(Icons.add),
+                  label: Text(tr('أضف باب', 'Add door')),
+                ),
+                TextButton.icon(
+                  onPressed: () => editOpening(true),
+                  icon: const Icon(Icons.add),
+                  label: Text(tr('أضف دريشة', 'Add window')),
+                ),
+              ],
             ),
           ],
         ),
-        if (options.isNotEmpty)
-          DropdownButton<String>(
-            isExpanded: true,
-            value: options.contains(saved) ? saved : null,
-            hint: Text(tr('افتح توزيع محفوظ', 'Open a saved layout')),
-            items: [
-              for (var i = 0; i < options.length; i++)
-                DropdownMenuItem(
-                  value: options[i],
-                  child: Text(tr('توزيع ${i + 1}', 'Layout ${i + 1}')),
+        section(
+          context,
+          icon: Icons.bookmark_outline,
+          title: tr('تصاميمي', 'My designs'),
+          subtitle: layoutName.isEmpty
+              ? null
+              : tr('المفتوح الآن: $layoutName', 'Open now: $layoutName'),
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: save,
+                    icon: const Icon(Icons.save_outlined),
+                    label: Text(tr('احفظ توزيع', 'Save layout')),
+                  ),
                 ),
-            ],
-            onChanged: (value) {
-              if (value != null) restore(value);
-            },
-          ),
-        const SizedBox(height: 16),
-        OutlinedButton.icon(
-          onPressed: () async {
-            try {
-              await Clipboard.setData(ClipboardData(text: document.encode()));
-              if (mounted)
-                message(
-                  'تم نسخ ملف الغرفة. تقدر تلصقه في لوحة الموظف.',
-                  'Room document copied. Paste it into the staff panel.',
-                );
-            } catch (_) {
-              if (mounted)
-                message(
-                  'راجع القطع والفتحات قبل التصدير.',
-                  'Check furniture and openings before exporting.',
-                );
-            }
-          },
-          icon: const Icon(Icons.copy),
-          label: Text(tr('نسخ ملف الغرفة', 'Copy room document')),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: copyPlan,
+                    icon: const Icon(Icons.content_copy, size: 18),
+                    label: Text(
+                      tr('انسخ مخطط التركيب', 'Copy installation plan'),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            if (options.isNotEmpty) const SizedBox(height: 8),
+            for (var i = 0; i < options.length && i < 20; i++)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+                selected: options[i] == saved,
+                leading: const Icon(Icons.home_outlined),
+                title: Text(layoutTitle(options[i], i)),
+                onTap: () => restore(options[i]),
+                trailing: IconButton(
+                  tooltip: tr('احذف التصميم', 'Delete design'),
+                  icon: const Icon(Icons.delete_outline),
+                  onPressed: () => deleteLayout(options[i]),
+                ),
+              ),
+          ],
         ),
-        RoomLinkPanel(
-          preferences: widget.preferences,
-          arabic: widget.arabic,
-          document: () => document,
+        section(
+          context,
+          icon: Icons.vrpano_outlined,
+          title: tr('المعرض والنظارة', 'Showroom and headset'),
+          children: [
+            OutlinedButton.icon(
+              onPressed: copyDocument,
+              icon: const Icon(Icons.copy),
+              label: Text(tr('نسخ ملف الغرفة', 'Copy room document')),
+            ),
+            RoomLinkPanel(
+              preferences: widget.preferences,
+              arabic: widget.arabic,
+              document: () => document,
+            ),
+          ],
         ),
       ],
     );

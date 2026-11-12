@@ -115,7 +115,11 @@ class RoomOrbit extends StatefulWidget {
 class _RoomOrbitState extends State<RoomOrbit> {
   late final model = () async {
     final result = <String, List<RoomFace>>{};
-    for (final product in furnitureSizes) {
+    final products = {
+      ...furnitureSizes,
+      for (final piece in widget.pieces) piece.product,
+    };
+    for (final product in products) {
       if (product.modelAsset != null)
         result[product.sku] = await LondonMesh.load(product.modelAsset!);
     }
@@ -222,8 +226,14 @@ class _OrbitPainter extends CustomPainter {
     void draw(List<Point3> points, Color color) {
       final path = Path()..addPolygon(points.map(screen).toList(), true);
       // Adjacent triangle antialiasing exposes the background as false mesh seams.
-      canvas.drawPath(path, Paint()..color = color..isAntiAlias = false);
+      canvas.drawPath(
+        path,
+        Paint()
+          ..color = color
+          ..isAntiAlias = false,
+      );
     }
+
     draw([
       point(0, 0, 0),
       point(w, 0, 0),

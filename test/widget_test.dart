@@ -31,8 +31,9 @@ Future<void> screenshot(WidgetTester tester, GlobalKey key, String name) async {
     final image = await boundary.toImage(pixelRatio: 2);
     final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
     final folder = Directory('build/preview')..createSync(recursive: true);
-    File('${folder.path}/$name.png')
-        .writeAsBytesSync(bytes!.buffer.asUint8List());
+    File(
+      '${folder.path}/$name.png',
+    ).writeAsBytesSync(bytes!.buffer.asUint8List());
     image.dispose();
   });
 }
@@ -64,6 +65,18 @@ void main() {
       expect(app.locale!.languageCode, 'ar');
       expect(tester.takeException(), isNull);
       await screenshot(tester, key, 'store-ar');
+      await tester.tap(find.text('كنبة لندن ثلاثية').first);
+      await tester.pumpAndSettle();
+      expect(find.text('أضف للسلة'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await screenshot(tester, key, 'product-ar');
+      await tester.tap(find.text('أضف للسلة'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.shopping_bag_outlined).last);
+      await tester.pumpAndSettle();
+      expect(find.text('كنبة لندن ثلاثية'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await screenshot(tester, key, 'bag-ar');
       await tester.tap(find.byIcon(Icons.architecture).last);
       await tester.pumpAndSettle();
       expect(find.byType(RoomOrbit), findsOneWidget);

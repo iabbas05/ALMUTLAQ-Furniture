@@ -4,9 +4,21 @@ This is a native Flutter storefront with a measured Flutter room preview, a sepa
 
 ## Mobile artifacts
 
-GitHub Actions > Build Almutlaq mobile apps builds an Android debug APK and an unsigned iOS IPA. Each build generates the London sofa/chair GLBs and USDZs from tools/generate_demo_models.py. iPhone product preview opens the bundled USDZ using native AR Quick Look at fixed scale. RoomPlan requires supported LiDAR hardware. Android camera AR needs the published HTTPS AR page URL passed as SHOWROOM_AR_URL (workflow input ar_url). No AR host is hardcoded before deployment.
+GitHub Actions > Build Almutlaq mobile apps builds an Android debug APK and an unsigned iOS IPA, plus a signed IPA when signing secrets are set (below). Each build generates the GLBs and USDZs from tools/generate_demo_models.py: London sofa and chair (room planner, headset and phone AR) and the CityW Warm Beige three-seater `23_88_1` (phone 3D/AR only). The list of products with phone AR lives in `lib/product_ar.dart`. iPhone product preview opens the bundled USDZ using native AR Quick Look at fixed scale. RoomPlan requires supported LiDAR hardware. Android camera AR needs the published HTTPS AR page URL passed as SHOWROOM_AR_URL (workflow input ar_url). No AR host is hardcoded before deployment.
 
 Actions artifacts include Almutlaq-Android-APK, Almutlaq-Unsigned-IPA, Almutlaq-App-Screenshots and Almutlaq-Staff-Previews. Open the complete workflow run summary to download artifacts, rather than a single job page. The unsigned IPA requires signing before normal iPhone installation. Debug Android is for testing, not a store release.
+
+## Signed iPhone build
+
+The unsigned IPA cannot be installed on an iPhone. To get an installable one, add three repository secrets (Settings > Secrets and variables > Actions). Never commit these files or values; this repository is public.
+
+| Secret | Value |
+| --- | --- |
+| `IOS_CERTIFICATE_P12_BASE64` | Apple Distribution certificate with its private key, exported from Keychain as .p12, then `base64 -i cert.p12` |
+| `IOS_CERTIFICATE_PASSWORD` | Password chosen when exporting the .p12 |
+| `IOS_PROVISIONING_PROFILE_BASE64` | `base64 -i profile.mobileprovision` |
+
+The bundle ID is read from the profile (`com.showroomxr.londonShowroom` when the profile uses a wildcard App ID). The export method follows the profile: Ad Hoc profiles produce `release-testing` IPAs for the registered devices, App Store profiles produce an App Store Connect upload, Enterprise profiles an in-house build. The job then uploads Almutlaq-Signed-IPA. Without the secrets these steps are skipped. Untested until real signing material is added.
 
 ## Headset on Windows
 
@@ -33,4 +45,4 @@ All physical acceptance remains pending until observed on real devices. Reconstr
 
 ## Website AR
 
-The AR workflow packages the SKU-aware page plus both GLB/USDZ pairs as ar-preview-site. Publishing is reserved for main and requires GitHub Pages configured by the owner. Development artifacts do not establish that the website is live.
+The AR workflow packages the SKU-aware page plus every generated GLB/USDZ pair as ar-preview-site. Publishing is reserved for main and requires GitHub Pages configured by the owner. Development artifacts do not establish that the website is live.

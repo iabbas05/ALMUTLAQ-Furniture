@@ -28,7 +28,8 @@ const furnitureSizes = [
     103,
     100,
     modelAsset: 'assets/london-10_14_3.glb',
-    image: 'https://thefactoryfurniture.com/wp-content/uploads/2026/11/10-14-00003-1.jpg',
+    image:
+        'https://thefactoryfurniture.com/wp-content/uploads/2026/11/10-14-00003-1.jpg',
   ),
   FurnitureSize(
     '6_14_5',
@@ -38,7 +39,8 @@ const furnitureSizes = [
     95,
     94,
     modelAsset: 'assets/london-6_14_5.glb',
-    image: 'https://thefactoryfurniture.com/wp-content/uploads/2026/11/06-14-00005-1.jpg',
+    image:
+        'https://thefactoryfurniture.com/wp-content/uploads/2026/11/06-14-00005-1.jpg',
   ),
 ];
 
@@ -69,8 +71,13 @@ class RoomPiece {
 
   RoomPiece move(double x, double y) =>
       RoomPiece(product, x, y, angle, modelVersion: modelVersion);
-  RoomPiece turn() =>
-      RoomPiece(product, x, y, (angle + 15) % 360, modelVersion: modelVersion);
+  RoomPiece turn([int step = 15]) => RoomPiece(
+    product,
+    x,
+    y,
+    (angle + step) % 360,
+    modelVersion: modelVersion,
+  );
   RoomPiece replace(FurnitureSize next) => RoomPiece(next, x, y, angle);
 
   /// Moves the whole footprint inside a room, without changing its size.

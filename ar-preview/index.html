@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>London | Room preview</title>
+<title>Room preview</title>
 <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@4.1.0/dist/model-viewer.min.js"></script>
 <style>
 body{font:16px system-ui,sans-serif;background:#eeeae3;color:#20382f;margin:0}
@@ -23,7 +23,7 @@ html[lang=ar] [data-lang=ar],html[lang=en] [data-lang=en]{display:revert}
 <body>
 <main>
 <header>
-<small>THE FACTORY · <span data-lang="ar">معاينة تجريبية</span><span data-lang="en">CONCEPT PREVIEW</span></small>
+<small><span id="brand">ALMUTLAQ</span> · <span data-lang="ar">معاينة تجريبية</span><span data-lang="en">CONCEPT PREVIEW</span></small>
 <button id="language" type="button">EN</button>
 </header>
 <div id="product">
@@ -44,8 +44,9 @@ html[lang=ar] [data-lang=ar],html[lang=en] [data-lang=en]{display:revert}
 </main>
 <script>
 const products = {
-  '10_14_3': { ar: 'كنبة لندن ثلاثة مقاعد', en: 'London three-seater', size: '210 × 103 × 100 cm' },
-  '6_14_5': { ar: 'كرسي لندن', en: 'London chair', size: '84 × 95 × 94 cm' },
+  '10_14_3': { file: 'london-10_14_3', brand: 'THE FACTORY', ar: 'كنبة لندن ثلاثة مقاعد', en: 'London three-seater', size: '210 × 103 × 100 cm' },
+  '6_14_5': { file: 'london-6_14_5', brand: 'THE FACTORY', ar: 'كرسي لندن', en: 'London chair', size: '84 × 95 × 94 cm' },
+  '23_88_1': { file: 'cityw-23_88_1', brand: 'CITYW', ar: 'كنبة بيج دافئ ثلاثية', en: 'Warm Beige three-seater', size: '230 × 101 × 78 cm' },
 };
 const root = document.documentElement, query = new URLSearchParams(location.search);
 const sku = query.get('sku') ?? '10_14_3', product = Object.hasOwn(products, sku) ? products[sku] : null;
@@ -68,8 +69,9 @@ const apply = lang => {
 };
 if (product) {
   const viewer = document.getElementById('viewer');
-  viewer.setAttribute('src', `london-${sku}.glb`);
-  viewer.setAttribute('ios-src', `london-${sku}.usdz`);
+  viewer.setAttribute('src', `${product.file}.glb`);
+  viewer.setAttribute('ios-src', `${product.file}.usdz`);
+  document.getElementById('brand').textContent = product.brand;
   viewer.setAttribute('alt', `${product.en}, simplified 3D preview`);
   document.getElementById('facts').textContent = `${sku} · ${product.size}`;
   links(document.getElementById('others'), Object.keys(products).filter(code => code !== sku));
