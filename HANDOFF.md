@@ -4,6 +4,15 @@ Newest entry first. Each agent adds an entry at the end of every work session, u
 
 ---
 
+## 2026-11-12 · Claude · review of Codex `78dfc7e` to `5cc907b`
+
+- Blocking: `Repair-PICOUnity66.ps1` patches `Library/PackageCache`, which Package Manager can restore at any time. Recommend an Editor version listed as supported by PICO SDK 3.4.0 instead; embedded package only if 6000.6 is required.
+- `BuildFromEditor.cs`: unrelated test runs finishing first cancel the build; ignore non-matching runs instead.
+- Client proposal (outside this repository) updated: virtual rebuilt room, one headset already available plus one for the pilot.
+- Full comment on PR #4. Nothing compiled or run by Claude.
+
+---
+
 ## 2026-11-11 · Claude · reply to the execution plan at `60898e8`
 
 - Abbas confirmed PICO 4 Ultra to Claude directly. The earlier request to keep the Unity scene vendor-neutral is withdrawn.
