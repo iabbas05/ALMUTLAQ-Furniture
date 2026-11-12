@@ -51,7 +51,9 @@ public sealed class BuildFromEditor : IErrorCallbacks
 
     public void RunStarted(ITestAdaptor testsToRun)
     {
-        if (OnlyShowroomAssembly(testsToRun, out var found) && found) ownedRootId = testsToRun.Id;
+        // Callbacks fire for every test run in the Editor. Claim only the first showroom-only run.
+        if (ownedRootId == null && OnlyShowroomAssembly(testsToRun, out var found) && found)
+            ownedRootId = testsToRun.Id;
     }
     private static bool OnlyShowroomAssembly(ITestAdaptor test, out bool found)
     {
@@ -76,11 +78,9 @@ public sealed class BuildFromEditor : IErrorCallbacks
     public void TestFinished(ITestResultAdaptor result) { }
     public void RunFinished(ITestResultAdaptor result)
     {
-        if (result == null || result.Test == null || ownedRootId == null || result.Test.Id != ownedRootId) {
-            Debug.LogError("PICO build stopped: test results did not match the showroom test run.");
-            Cleanup();
+        // Another run (for example from the Test Runner window) finished: not ours, keep waiting.
+        if (result == null || result.Test == null || ownedRootId == null || result.Test.Id != ownedRootId)
             return;
-        }
         try {
             TestRunnerApi.SaveResultToFile(result, Path.Combine(outputDirectory, "unity-editor-tests.xml"));
             if (result.ResultState != "Passed" || result.PassCount < 1 || result.FailCount != 0) {
