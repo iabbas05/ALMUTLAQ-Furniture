@@ -12,6 +12,7 @@ Abbas asked Claude this session to fix the iPhone build, extend AR, redesign the
 
 **Tested**
 - Local Flutter 3.47.8: `flutter analyze lib test` clean, 16 tests pass (new: every AR model matches its published size; AR-only products stay out of the planner; product page and bag render). 20 server tests pass. All three USDZ files pass `check-usdz.py`.
+- CI on e832615: mobile workflow 43200769639 passed (Windows, protocol/browser, Android APK, unsigned iOS IPA); AR workflow 43200774801 passed.
 - Untested on device. Signing steps untested until real signing material is added. Store photos could not be fetched in this environment, so screenshots used placeholders.
 
 **Review notes, not fixed**
