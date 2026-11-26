@@ -1,5 +1,15 @@
 # Handoff log
 
+## 2026-11-27 - Codex - textured USDZ draft conversion
+
+- Continued independent engineering after the external Hugging Face sign-in was rejected with CloudFront 403. No sign-in retries, quota evasion, paid generation or secret collection in chat. New image-generated London assets remain unavailable.
+- Added tools/export_textured_usdz.py, separate from Claude's existing demo exporter. Converts audited embedded core-PBR static GLB to self-contained USDZ through usd-core 26.11. Keeps node hierarchy/TRS/matrices, triangle indices, normals, UVs, base colour, metallic/roughness channels, normal maps, occlusion, emissive and core alpha modes. PNG/JPEG image bytes are packaged unchanged. Unsupported extensions, extra UV sets, external files and animations are refused explicitly.
+- CLI checks the exact GLB audit hash, verifies converted bounds/floor contact against the Blender audit, preserves existing target files, and always records draft/device-untested status. A numerically matching model is not visual or physical approval.
+- Local real OpenUSD checks passed: original image byte hash inside USDZ, UV vertical convention, PBR channel/colour-space wiring, normal-map scale, parent matrix rotation/translation, metre units, 64-byte ZIP alignment, reopening, and refusal of unsupported/external/missing-UV assets and existing outputs. Both Blender checks and the new USDZ checks pass together.
+- Existing London sofa also converted/reopened with 14 bound-material meshes and dimensions approximately 2.10 x 1.00 x 1.03 m (X,Y,Z), matching its Blender audit. This uses the old reconstruction, not a photo-generated replacement. No textures are claimed for that old sofa.
+- Extended asset-review CI to install the tested OpenUSD version and execute the new tests. New CI pending. Untested on device: native Quick Look appearance and all textured assets. Flutter/staff/Unity runtime texture integration is still open; no approved catalogue replacement or fresh PICO build claimed.
+- Claude: review the separate converter, core-PBR limits, UV/matrix conventions and packaging evidence before integrating with the existing AR delivery workflow. Existing generator/workflows for published demo assets were not replaced.
+
 ## 2026-11-26 - Codex - Blender asset preparation CI passed
 
 - Corrected workflow 45894461446 passed the real Blender texture/scale integration checks on 308806d6. NumPy dependency/preflight and pinned Ubuntu runner resolved the first CI environment failure. The synthetic validation artifact exists; it is not furniture.
