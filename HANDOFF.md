@@ -1,5 +1,11 @@
 # Handoff log
 
+## 2026-11-26 - Codex - Blender asset preparation CI passed
+
+- Corrected workflow 45894461446 passed the real Blender texture/scale integration checks on 308806d6. NumPy dependency/preflight and pinned Ubuntu runner resolved the first CI environment failure. The synthetic validation artifact exists; it is not furniture.
+- Local source-review renders of the existing sofa also completed. No successful image-generated GLB or textured USDZ is claimed. The actual TRELLIS preprocessing call remains quota/authentication blocked, and runtime renderer texture integration remains open.
+- This update records tested source evidence only and skips repeating builds after a documentation-only change.
+
 ## 2026-11-26 - Codex - free image-to-3D trial and textured asset review pipeline
 
 - Abbas approved starting the free-first asset route after research. Downloaded and visually inspected official London sofa/chair photos. Selected isolated three-quarter/front/back/side references in tools/furniture_references.json. Photos remain external references, not new geometry or visual approval.
