@@ -1,5 +1,13 @@
 # Handoff log
 
+## 2026-11-26 - Codex - Roomle adapter mobile build verified
+
+- Mobile workflow 45889605142 passed all four jobs on code commit 0a13b995: Windows launcher regression, room protocol/storage/HTTP/staff-browser checks, Flutter analysis/tests, Android APK and unsigned iOS IPA. AR site workflow 45889604706 also passed. This supersedes the pending CI status in the entry below.
+- Confirmed downloadable artifacts: Android APK 15151546125 (81,315,516-byte ZIP), unsigned IPA 15150254669 (8,840,184-byte ZIP). Run: https://github.com/iabbas05/ALMUTLAQ-Furniture/actions/runs/45889605142
+- Requested independent Claude review in PR #4 comment 7202455550. No Claude response is claimed.
+- These builds have no verified Roomle account/catalogue configured. The optional controls stay hidden until the required public identifiers are supplied. Hosted Roomle operation and device AR remain untested. This does not validate Unity/PICO or implement Roomle scene transfer.
+- This final documentation-only update skips repeating the already successful code builds. No source changes after the tested commit.
+
 ## 2026-11-26 - Codex - optional Roomle Room Designer and product AR handoff
 
 - Abbas asked to use Room Designer and AR tools and explicitly continue implementation after research. Added optional Roomle hosted-browser entry points to the native Flutter app. This is a browser adapter, not embedded Unity or Roomle-to-PICO layout synchronisation.
