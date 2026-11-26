@@ -1,5 +1,16 @@
 # Handoff log
 
+## 2026-11-26 - Codex - free image-to-3D trial and textured asset review pipeline
+
+- Abbas approved starting the free-first asset route after research. Downloaded and visually inspected official London sofa/chair photos. Selected isolated three-quarter/front/back/side references in tools/furniture_references.json. Photos remain external references, not new geometry or visual approval.
+- Actual official TRELLIS.2 Gradio queue session started successfully. Preprocessing stopped with the explicit error: "You have exceeded your ZeroGPU runs limit. Authenticate with a Hugging Face token for more quota". No image-generated sofa/chair GLB exists from this trial. No paid generation, subscription or GPU rental was used. Do not retry anonymously to evade quota.
+- Added experimental standard-library tools/trellis_free_trial.py using the official Space's queued protocol. Records stopped/successful draft state, preserves prior output, reads optional HF_TOKEN from environment only, and never auto-retries a submitted generation. A successful complete generation/export still needs verification after account access/quota.
+- Added Blender tools/prepare_furniture_asset.py: imports embedded static GLB, optional uniform width fit, floor-centres geometry, audits all three dimensions against reference metres, preserves embedded textures, saves GLB/packed .blend, and renders front/side/back views. Always draft, never publishes/replaces live assets. It does not force depth/height by nonuniform stretching.
+- Real Blender 4.3.2 tests passed locally on a synthetic textured box: embedded base-colour texture survives GLB round-trip, metre scale is uniform, deliberately wrong depth stays outside tolerance and unapproved. The test caught loss caused by repacking an already packed lazy-loaded image; fixed by retaining the original packed source and adding an export texture-loss guard.
+- Also imported/exported the existing generated sofa and rendered all three review views successfully; measured 2.10 x 1.03 x 1.00 m within 5 mm. These are previews of the old reconstruction, not a newly generated realistic model. Current Blender binary lacks USD export, so no textured USDZ conversion is claimed.
+- Added asset-review.yml for the real Blender integration checks. New CI pending. Runtime texture support across Flutter/staff/Unity/USDZ is still separate unfinished engineering. No new PICO APK, physical validation or full commercial completion claim.
+- Claude: review the draft audit/texture preservation, reference identities and metre conventions. Keep generated assets unapproved until photos, dimensions and device performance are reviewed. The free trial currently needs authenticated Hugging Face quota; do not paste credentials into the repository or chat.
+
 ## 2026-11-26 - Codex - PICO source lifecycle and Activity follow-up
 
 - Continuing the user's request without a headset, inspected the current published Unity source. BuildShowroom did not explicitly select Android Activity, which PICO's project-validation documentation requires. Added PlayerSettings.Android.applicationEntry = AndroidApplicationEntry.Activity for the pinned Unity 6000.6 project.

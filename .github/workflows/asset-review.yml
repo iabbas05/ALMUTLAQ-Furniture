@@ -1,0 +1,22 @@
+name: Check textured asset preparation
+on:
+  pull_request:
+    branches: [main]
+    paths: ['tools/prepare_furniture_asset.py', 'qa/check_asset_review.py', '.github/workflows/asset-review.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  blender:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Blender from Ubuntu packages
+        run: sudo apt-get update && sudo apt-get install -y blender
+      - name: Check real textured GLB round trip and scale rejection
+        run: python3 qa/check_asset_review.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Synthetic-Asset-Review-Checks
+          path: build/asset-review-check/
+          if-no-files-found: error
