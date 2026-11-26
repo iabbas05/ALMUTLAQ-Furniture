@@ -77,6 +77,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       SHOWROOM_AR_URL: ${{ inputs.ar_url }}
+      ROOMLE_CONFIGURATOR_ID: ${{ vars.ROOMLE_CONFIGURATOR_ID }}
+      ROOMLE_CATALOG_ROOT_TAG: ${{ vars.ROOMLE_CATALOG_ROOT_TAG }}
+      ROOMLE_PRODUCT_IDS: ${{ vars.ROOMLE_PRODUCT_IDS }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -103,6 +106,8 @@ jobs:
           curl --fail --silent --show-error --location --retry 3 "$font_base/OFL.txt" --output assets/NotoSansArabic-OFL.txt
           test -s assets/NotoSansArabic.ttf
           python3 scripts/fetch_demo_photos.py --required
+      - name: Prepare optional Roomle public configuration
+        run: python3 scripts/prepare_roomle.py
       - run: dart format lib test
       - run: flutter analyze lib test
       - run: flutter test
@@ -111,7 +116,7 @@ jobs:
           name: Almutlaq-App-Screenshots
           path: build/preview/
           if-no-files-found: error
-      - run: flutter build apk --debug --dart-define="SHOWROOM_AR_URL=$SHOWROOM_AR_URL"
+      - run: flutter build apk --debug --dart-define="SHOWROOM_AR_URL=$SHOWROOM_AR_URL" --dart-define-from-file=build/roomle-defines.json
       - uses: actions/upload-artifact@v4
         with:
           name: Almutlaq-Android-APK
@@ -123,6 +128,9 @@ jobs:
     runs-on: macos-latest
     env:
       SHOWROOM_AR_URL: ${{ inputs.ar_url }}
+      ROOMLE_CONFIGURATOR_ID: ${{ vars.ROOMLE_CONFIGURATOR_ID }}
+      ROOMLE_CATALOG_ROOT_TAG: ${{ vars.ROOMLE_CATALOG_ROOT_TAG }}
+      ROOMLE_PRODUCT_IDS: ${{ vars.ROOMLE_PRODUCT_IDS }}
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -146,12 +154,14 @@ jobs:
           curl --fail --silent --show-error --location --retry 3 "$font_base/OFL.txt" --output assets/NotoSansArabic-OFL.txt
           test -s assets/NotoSansArabic.ttf
           python3 scripts/fetch_demo_photos.py --required
+      - name: Prepare optional Roomle public configuration
+        run: python3 scripts/prepare_roomle.py
       - run: dart format lib test
       - run: flutter analyze lib test
       - name: Build and package unsigned IPA
         run: |
           set -o pipefail
-          flutter build ios --release --no-codesign --verbose --dart-define="SHOWROOM_AR_URL=$SHOWROOM_AR_URL" 2>&1 | tee ios-build.log
+          flutter build ios --release --no-codesign --verbose --dart-define="SHOWROOM_AR_URL=$SHOWROOM_AR_URL" --dart-define-from-file=build/roomle-defines.json 2>&1 | tee ios-build.log
           mkdir -p build/unsigned/Payload
           ditto build/ios/iphoneos/Runner.app build/unsigned/Payload/Runner.app
           cd build/unsigned

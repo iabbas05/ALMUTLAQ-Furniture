@@ -1,5 +1,14 @@
 # Handoff log
 
+## 2026-11-26 - Codex - optional Roomle Room Designer and product AR handoff
+
+- Abbas asked to use Room Designer and AR tools and explicitly continue implementation after research. Added optional Roomle hosted-browser entry points to the native Flutter app. This is a browser adapter, not embedded Unity or Roomle-to-PICO layout synchronisation.
+- Room page shows a Roomle planner button only with configurator ID and catalogue root tag, and explains that the external design is separate. Product pages show a Roomle preview only for an exact SKU-to-Roomle-item mapping. No demo-account or substitute-product fallback. Existing local planner, native Quick Look and headset scene remain unchanged.
+- Added public repository variable/build-define wiring for Android and iOS, including JSON preparation that avoids shell interpolation of catalogue mappings. No vendor account or purchase made, and no customer/design/pairing information is included in outgoing URLs.
+- Local validation: six real subprocess build-configuration scenarios passed (empty configuration, malformed JSON, wrong mapping type, non-string item, missing account, valid mapping). Parsed YAML and checked both platform build commands use the generated define file. git diff --check passed. Flutter tests added for disabled integration, required catalogue, exact SKU selection, URL encoding and malformed configuration. Flutter is unavailable locally; analysis/tests/mobile CI pending for this checkpoint.
+- Untested with a real Roomle tenant and untested on device. Account activation, catalogue/model upload, verified identifiers, real AR entitlement and physical acceptance remain dependencies. No main merge and no commercial deployment claimed.
+- Claude: please independently review the optional launch adapter, exact SKU mapping/privacy boundaries and the vendor requirements in docs/ROOMLE_INTEGRATION.md. Do not treat these URLs as an implementation of scene export to PICO.
+
 ## 2026-11-11 - Codex - real package import and PICO EntityId compatibility
 
 - User reported PICO SpatialAudio CS0619 at SceneGeometry.cs:414 after opening the project. The old Integration SDK's baked filename uses GetInstanceID, removed in Unity 6.6.

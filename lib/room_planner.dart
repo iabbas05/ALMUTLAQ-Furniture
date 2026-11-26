@@ -11,6 +11,7 @@ import 'room_orbit.dart';
 import 'room_document.dart';
 import 'room_link.dart';
 import 'room_scan.dart';
+import 'roomle.dart';
 
 class RoomPlanner extends StatefulWidget {
   const RoomPlanner(this.preferences, this.arabic, {super.key});
@@ -577,6 +578,26 @@ class RoomPlannerState extends State<RoomPlanner> {
           ),
         ),
         const SizedBox(height: 12),
+        if (Roomle.configured.plannerUri() != null) ...[
+          OutlinedButton.icon(
+            onPressed: () async {
+              try {
+                if (await Roomle.configured.openPlanner()) return;
+              } catch (_) {
+                // A failed browser launch leaves the local design intact.
+              }
+              if (!mounted) return;
+              message('تعذّر فتح Roomle.', 'Unable to open Roomle.');
+            },
+            icon: const Icon(Icons.open_in_new),
+            label: Text(tr('افتح مصمم Roomle', 'Open Roomle designer')),
+          ),
+          Text(tr(
+            'يفتح في المتصفح. التصميم منفصل عن غرفتك المحفوظة وعن النظارة.',
+            'Opens in your browser. Its design is separate from your saved room and headset.',
+          )),
+          const SizedBox(height: 12),
+        ],
         Wrap(
           spacing: 8,
           children: [

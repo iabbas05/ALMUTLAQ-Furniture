@@ -12,6 +12,7 @@ import 'room_geometry.dart';
 import 'room_orbit.dart';
 import 'app_updates.dart';
 import 'product_ar.dart';
+import 'roomle.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -276,6 +277,25 @@ class _FurnitureAppState extends State<FurnitureApp> {
                       'Room preview will be available after this product has a model and approved dimensions.',
                     ),
                   ),
+                ),
+              if (Roomle.configured.productUri(p.sku) != null)
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    try {
+                      if (await Roomle.configured.openProduct(p.sku)) return;
+                    } catch (_) {
+                      // Leave the native preview available if launch fails.
+                    }
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(tr(
+                        'تعذّر فتح معاينة Roomle.',
+                        'Unable to open the Roomle preview.',
+                      ))),
+                    );
+                  },
+                  icon: const Icon(Icons.open_in_new),
+                  label: Text(tr('عرض المنتج وAR في Roomle', 'Product and AR in Roomle')),
                 ),
               const SizedBox(height: 12),
               FilledButton.icon(
