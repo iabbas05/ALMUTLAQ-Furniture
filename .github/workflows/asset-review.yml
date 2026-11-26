@@ -8,11 +8,13 @@ permissions:
   contents: read
 jobs:
   blender:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Install Blender from Ubuntu packages
-        run: sudo apt-get update && sudo apt-get install -y blender
+        run: sudo apt-get update && sudo apt-get install -y blender python3-numpy
+      - name: Verify Blender glTF Python dependency
+        run: blender -b --python-exit-code 1 --python-expr "import numpy; print(numpy.__version__)"
       - name: Check real textured GLB round trip and scale rejection
         run: python3 qa/check_asset_review.py
       - uses: actions/upload-artifact@v4
