@@ -1,5 +1,12 @@
 # Delivery status and blocked steps
 
+## Source follow-up, 26 November 2026
+
+The Codex branch now explicitly selects Android Activity for the PICO build and initializes room finishes from Apply as well as Awake. Revision geometry belongs to the RoomScene hierarchy. The edit-mode suite has an additional lifecycle/material-reuse regression, and no longer calls Awake through SendMessage. These changes require a fresh Unity Editor test/build run. The current Linux workspace has no Unity Editor, so neither the new Unity test nor a new headset APK is verified here. Mobile CI passes are not Unity build evidence.
+
+Roomle browser integration preparation and verified phone build artifacts are recorded in HANDOFF.md and docs/ROOMLE_INTEGRATION.md. Roomle tenant/catalogue configuration and physical acceptance remain open.
+
+
 Updated 2026-11-11. This is a development checkpoint, not a claim that the complete product is finished. Earlier elapsed-time estimates did not account for a successful licensed Unity build and should not be treated as delivery commitments.
 
 ## Verified outputs

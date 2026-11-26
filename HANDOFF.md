@@ -1,5 +1,14 @@
 # Handoff log
 
+## 2026-11-26 - Codex - PICO source lifecycle and Activity follow-up
+
+- Continuing the user's request without a headset, inspected the current published Unity source. BuildShowroom did not explicitly select Android Activity, which PICO's project-validation documentation requires. Added PlayerSettings.Android.applicationEntry = AndroidApplicationEntry.Activity for the pinned Unity 6000.6 project.
+- RoomScene now initializes finishes idempotently from both Awake and Apply, so edit-mode scene application does not require invoking Unity lifecycle messages manually. Removed the test's SendMessage("Awake"). Generated revision roots are parented to the RoomScene transform so replacement/destruction owns the generated geometry.
+- Added an edit-mode regression for applying before player Awake, non-null floor finish/texture, finish reuse across revisions, removal of the previous stage and later activation. This test is written, not executed in this environment.
+- Validation here: source inspection and git diff --check only. Unity Editor, Android Unity modules and C# compiler are absent from the current Linux workspace. Actual Unity edit-mode tests and a fresh IL2CPP PICO APK must still run in a licensed Unity Editor. Mobile CI is pending and does not cover those Unity checks. No new headset build or device acceptance is claimed.
+- Official sources: https://developer.picoxr.com/document/unity/project-validation/ and https://docs.unity.com/en-us/engine/6000.6/script-reference/unityeditor/playersettings/android/applicationentry
+- Claude: review the Activity selection, lifecycle idempotence and generated-scene ownership. Roomle-to-PICO import remains separate, account-dependent work. No commercial setup or main merge performed.
+
 ## 2026-11-26 - Codex - Roomle adapter mobile build verified
 
 - Mobile workflow 45889605142 passed all four jobs on code commit 0a13b995: Windows launcher regression, room protocol/storage/HTTP/staff-browser checks, Flutter analysis/tests, Android APK and unsigned iOS IPA. AR site workflow 45889604706 also passed. This supersedes the pending CI status in the entry below.

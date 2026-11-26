@@ -19,14 +19,40 @@ public class RoomValidationTests
         try
         {
             var scene = root.AddComponent<RoomScene>();
-            // Edit-mode AddComponent does not run normal player Awake automatically.
-            root.SendMessage("Awake");
             scene.Apply(Valid());
             var accepted = scene.Current;
             var broken = Valid(); broken.revision = 2; broken.room.width = float.NaN;
             Assert.Throws<FormatException>(() => scene.Apply(broken));
             Assert.AreSame(accepted, scene.Current);
             Assert.AreEqual(1, scene.Current.revision);
+        }
+        finally { UnityEngine.Object.DestroyImmediate(root); }
+    }
+
+    [Test]
+    public void ApplyingBeforePlayerAwakeCreatesAndReusesFinishes()
+    {
+        var root = new GameObject("TEST material lifecycle");
+        // An inactive object cannot receive the normal player Awake yet.
+        root.SetActive(false);
+        try
+        {
+            var scene = root.AddComponent<RoomScene>();
+            scene.Apply(Valid());
+            var floor = root.transform.Find("Measured room revision 1/Floor");
+            Assert.IsNotNull(floor);
+            var finish = floor.GetComponent<Renderer>().sharedMaterial;
+            Assert.IsNotNull(finish);
+            Assert.IsNotNull(finish.mainTexture);
+
+            var next = Valid(); next.revision = 2;
+            scene.Apply(next);
+            var nextFloor = root.transform.Find("Measured room revision 2/Floor");
+            Assert.IsNotNull(nextFloor);
+            Assert.AreSame(finish, nextFloor.GetComponent<Renderer>().sharedMaterial);
+            Assert.IsNull(root.transform.Find("Measured room revision 1"));
+            root.SetActive(true);
+            Assert.AreSame(finish, nextFloor.GetComponent<Renderer>().sharedMaterial);
         }
         finally { UnityEngine.Object.DestroyImmediate(root); }
     }

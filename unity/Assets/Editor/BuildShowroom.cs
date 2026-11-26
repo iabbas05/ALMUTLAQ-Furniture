@@ -54,6 +54,8 @@ public static class BuildShowroom
         PlayerSettings.Android.bundleVersionCode = 9;
         PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel29;
         PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
+        // PICO project validation requires the Activity entry point.
+        PlayerSettings.Android.applicationEntry = AndroidApplicationEntry.Activity;
         PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
         PlayerSettings.Android.forceInternetPermission = true;
         // USB reverse maps the device loopback to the local staff service.

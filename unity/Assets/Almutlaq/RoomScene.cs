@@ -16,6 +16,7 @@ namespace Almutlaq.Showroom
         private GameObject sceneRoot;
         private readonly List<Material> finishes = new List<Material>();
         private Material wallMaterial, floorMaterial, frameMaterial, glassMaterial;
+        private bool materialsReady;
 
         private Material Finish(string label, Color color, float smooth = .15f)
         {
@@ -26,6 +27,12 @@ namespace Almutlaq.Showroom
         }
         private void Awake()
         {
+            EnsureMaterials();
+        }
+
+        private void EnsureMaterials()
+        {
+            if (materialsReady) return;
             wallMaterial = Finish("Warm plaster", new Color(.86f, .84f, .79f));
             floorMaterial = Finish("Oak floor", new Color(.69f, .51f, .32f), .2f);
             frameMaterial = Finish("Oak frames", new Color(.53f, .39f, .25f));
@@ -46,12 +53,16 @@ namespace Almutlaq.Showroom
                 }
             grain.Apply();
             floorMaterial.mainTexture = grain;
+            materialsReady = true;
         }
 
         public void Apply(RoomState state)
         {
             state.Validate(Models);
+            // Edit-mode callers may apply a room before the player lifecycle runs.
+            EnsureMaterials();
             var stage = new GameObject("Measured room revision " + state.revision);
+            stage.transform.SetParent(transform, false);
             stage.SetActive(false);
             var next = new List<GameObject>();
             try
