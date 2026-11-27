@@ -13,6 +13,7 @@ public sealed class BuildFromEditor : IErrorCallbacks
     private static bool busy;
     private string outputDirectory;
     private string ownedRootId;
+    private bool completionQueued;
 
     [MenuItem("Almutlaq/Test and build PICO APK")]
     public static void StartBuild()
@@ -51,7 +52,9 @@ public sealed class BuildFromEditor : IErrorCallbacks
 
     public void RunStarted(ITestAdaptor testsToRun)
     {
-        if (OnlyShowroomAssembly(testsToRun, out var found) && found) ownedRootId = testsToRun.Id;
+        if (!busy || listener != this || ownedRootId != null || completionQueued) return;
+        if (OnlyShowroomAssembly(testsToRun, out var found) && found)
+            ownedRootId = testsToRun.Id;
     }
     private static bool OnlyShowroomAssembly(ITestAdaptor test, out bool found)
     {
@@ -69,6 +72,7 @@ public sealed class BuildFromEditor : IErrorCallbacks
     }
     public void OnError(string message)
     {
+        if (!busy || listener != this) return;
         Debug.LogError("PICO build stopped before tests completed: " + message);
         Cleanup();
     }
@@ -76,11 +80,11 @@ public sealed class BuildFromEditor : IErrorCallbacks
     public void TestFinished(ITestResultAdaptor result) { }
     public void RunFinished(ITestResultAdaptor result)
     {
-        if (result == null || result.Test == null || ownedRootId == null || result.Test.Id != ownedRootId) {
-            Debug.LogError("PICO build stopped: test results did not match the showroom test run.");
-            Cleanup();
-            return;
-        }
+        // Unity broadcasts callbacks from every TestRunnerApi instance. An unrelated
+        // result must neither cancel this build nor replace its accepted test root.
+        if (!busy || listener != this || completionQueued || result == null ||
+            result.Test == null || ownedRootId == null || result.Test.Id != ownedRootId) return;
+        completionQueued = true;
         try {
             TestRunnerApi.SaveResultToFile(result, Path.Combine(outputDirectory, "unity-editor-tests.xml"));
             if (result.ResultState != "Passed" || result.PassCount < 1 || result.FailCount != 0) {
@@ -96,6 +100,7 @@ public sealed class BuildFromEditor : IErrorCallbacks
 
     private void PackageApk()
     {
+        if (!busy || listener != this) return;
         var previous = Environment.GetEnvironmentVariable("SHOWROOM_APK_OUTPUT");
         var pending = Path.Combine(outputDirectory, "ShowroomVR-Editor.pending.apk");
         var final = Path.Combine(outputDirectory, "ShowroomVR-Linked.apk");
@@ -115,6 +120,7 @@ public sealed class BuildFromEditor : IErrorCallbacks
 
     private static void Cleanup()
     {
+        if (listener != null) EditorApplication.delayCall -= listener.PackageApk;
         if (runner != null) {
             if (listener != null) runner.UnregisterCallbacks(listener);
             UnityEngine.Object.DestroyImmediate(runner);

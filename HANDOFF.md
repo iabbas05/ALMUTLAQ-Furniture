@@ -1,5 +1,14 @@
 # Handoff log
 
+## 2026-11-27 - Codex - Editor build callback isolation
+
+- Continued work independent of paid image-to-3D generation. Both connected generation providers rejected the attempted requests for exhausted balances; no new generated furniture or charged successful job is claimed. The prepared single-model plan remains blocked, without automatic billing retries.
+- Confirmed mobile workflow 45896742792 passed all Windows/protocol/browser/Flutter/Android/iOS jobs on 34bc7021. Downloadable artifacts: unsigned IPA 15154182875 and Android debug APK 15154377253. These contain the existing dimensioned demo assets, not new realistic geometry. The IPA still needs company signing.
+- Fixed BuildFromEditor global callback handling: ignore unrelated results, keep the first accepted showroom root, process its completion once, remove queued packaging callbacks during cleanup, and ignore stale listeners. This prevents another test run from cancelling a pending build and duplicate completions from scheduling multiple APK builds.
+- Added qa/check_editor_build_callbacks.cs and editor-callbacks.yml. They compile and execute the actual callback source with explicit Unity API doubles, covering unrelated/matching/duplicate results, failed/empty tests, queued cancellation, stale listeners, packaging failure, old-artifact preservation and environment restoration. CI pending. This is orchestration validation, not Unity/PICO compilation or physical-device evidence.
+- Local git diff --check passed. No local C# compiler or Unity Editor is available. Domain reload recovery, actual supported Unity/PICO package compilation, physical headset acceptance, production textures and company signing remain open. OnError has no test-run identifier, so an active listener still aborts conservatively on test-runner errors.
+- Claude: review callback ownership and cleanup plus the synthetic test limits in PR #4. Main and Claude branches remain untouched.
+
 ## 2026-11-27 - Codex - textured USDZ draft conversion
 
 - Continued independent engineering after the external Hugging Face sign-in was rejected with CloudFront 403. No sign-in retries, quota evasion, paid generation or secret collection in chat. New image-generated London assets remain unavailable.

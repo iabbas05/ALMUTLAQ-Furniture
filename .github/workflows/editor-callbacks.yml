@@ -1,0 +1,20 @@
+name: Check Editor build callbacks
+on:
+  pull_request:
+    branches: [main]
+    paths: ['unity/Assets/Editor/BuildFromEditor.cs', 'qa/check_editor_build_callbacks.cs', '.github/workflows/editor-callbacks.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  orchestration:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install C# test compiler
+        run: sudo apt-get update -qq && sudo apt-get install -y mono-mcs
+      - name: Execute real build callback source against Unity API test doubles
+        run: |
+          mkdir -p build/editor-callback-check
+          mcs -out:build/editor-callback-check/check.exe qa/check_editor_build_callbacks.cs unity/Assets/Editor/BuildFromEditor.cs
+          mono build/editor-callback-check/check.exe
