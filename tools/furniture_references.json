@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "products": [
+    {
+      "sku": "10_14_3",
+      "unit": "m",
+      "expectedDimensions": {
+        "width": 2.1,
+        "depth": 1.03,
+        "height": 1.0
+      },
+      "references": {
+        "threeQuarter": "https://thefactoryfurniture.com/wp-content/uploads/2026/11/10-14-00003-6.jpg",
+        "front": "https://thefactoryfurniture.com/wp-content/uploads/2026/11/10-14-00003-11.jpg",
+        "back": "https://thefactoryfurniture.com/wp-content/uploads/2026/11/10-14-00003-7.jpg",
+        "side": "https://thefactoryfurniture.com/wp-content/uploads/2026/11/10-14-00003-8.jpg"
+      },
+      "modelStatus": "no_image_generated_model_approved",
+      "measurementSource": "Published product dimensions recorded in AGENTS.md",
+      "visualApprovalRequired": true
+    },
+    {
+      "sku": "6_14_5",
+      "unit": "m",
+      "expectedDimensions": {
+        "width": 0.84,
+        "depth": 0.95,
+        "height": 0.94
+      },
+      "references": {
+        "threeQuarter": "https://thefactoryfurniture.com/wp-content/uploads/2026/11/06-14-00005-2.jpg",
+        "front": "https://thefactoryfurniture.com/wp-content/uploads/2026/11/06-14-00005-4.jpg",
+        "back": "https://thefactoryfurniture.com/wp-content/uploads/2026/11/06-14-00005-5.jpg",
+        "side": "https://thefactoryfurniture.com/wp-content/uploads/2026/11/06-14-00005-6.jpg"
+      },
+      "modelStatus": "no_image_generated_model_approved",
+      "measurementSource": "Published product dimensions recorded in AGENTS.md",
+      "visualApprovalRequired": true
+    }
+  ]
+}

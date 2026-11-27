@@ -1,0 +1,32 @@
+name: Check textured asset preparation
+on:
+  pull_request:
+    branches: [main]
+    paths: ['tools/prepare_furniture_asset.py', 'tools/export_textured_usdz.py', 'qa/check_asset_review.py', 'qa/check_textured_usdz.py', '.github/workflows/asset-review.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  blender:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Blender from Ubuntu packages
+        run: sudo apt-get update && sudo apt-get install -y blender python3-numpy
+      - name: Verify Blender glTF Python dependency
+        run: blender -b --python-exit-code 1 --python-expr "import numpy; print(numpy.__version__)"
+      - name: Check real textured GLB round trip and scale rejection
+        run: python3 qa/check_asset_review.py
+      # Run distro Blender before setup-python changes its embedded libpython lookup.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install the tested OpenUSD package
+        run: python3 -m pip install usd-core==26.11
+      - name: Check textured USDZ packaging, materials, coordinates and rejection
+        run: python3 qa/check_textured_usdz.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Synthetic-Asset-Review-Checks
+          path: build/asset-review-check/
+          if-no-files-found: error
