@@ -51,3 +51,7 @@ This runbook targets Windows and PICO 4 Ultra. It is a test build, not a product
 
 The launcher also supports `-PanelOnly` to run the staff UI without a headset. Browser tests use simulated ACKs. Real measurement, tracking and performance evidence belongs in DEVICE_TESTS.md.
 
+### Notes for the in-Editor build menu
+- Other test runs in the Editor do not cancel "Almutlaq > Test and build PICO APK"; it waits for its own showroom test run.
+- If Unity reloads scripts while the menu is running, nothing is built. Run the menu again; a leftover `builds/*.pending.apk` is ignored and replaced.
+- The build replaces the open scene with the generated showroom scene. Choose "Save" when Unity asks, or unsaved scene edits are lost.
